@@ -1,0 +1,122 @@
+--- PAGE 1 ---
+5.3  Inclined or Skewed Supports—Frame Element 261
+Similarly, using the lower left 333  part of Eq. (5.1.6), we have at node 2,
+ 
+9
+9
+9
+53
+2
+22 270 10
+20 0
+0 0.067 0.10
+0 0.10 0.10
+0.00338
+0.0225
+0.0113
+2
+2
+2
+3
+f
+f
+m
+x
+y
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ 
+The matrix product then yields
+ 99 952 55 2?473 kN 26.5 kN 78.3 kN m22 2f fmxy  (5.2.53)
+To help interpret the results of Eqs. (5.2.49), (5.2.50), (5.2.52), and (5.2.53), freebody 
+diagrams of the bar and beam elements are shown in Figure 5–11. To further verify the 
+results, we can show a check on equilibrium of node 1 to be satisfied. You should also verify 
+that moment equilibrium is satisfied in the beam.
+ 5.3  i nclined or skewed supports—Frame Element
+For the frame element with inclined support at node 3 in Figure 5–12, the transformation matrix 
+[T] used to transform global to local nodal displacements is given by Eq. (5.1.10).
+In the example shown in Figure 5–12, we use [T] applied to node 3 as follows:
+ 
+9
+9
+f9
+aa
+aa
+f
+52
+coss in 0
+sinc os 0
+00 1
+3
+3
+3
+3
+3
+3
+u
+v
+u
+v
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ (5.3.1)
+The same steps as given in Section 3.9 then follow for the plane frame. The resulting 
+equations for the plane frame in Figure 5–12 are [see also Eq. (3.9.13)]
+ Tf TK Tdii i T5[] {} [] [] [] {}  (5.3.2)
+ ■ Figure 5–11 Free-body diagrams of the bar (element 2) and beam (element 1) elements 
+of Figure 5–10
+x /uni2032
+x/uni2032
+y /uni2032
+Copyright 2017 Cengage Learning. All Rights Reserved. May not be copied, scanned, or duplicated, in whole or in part. Due to electronic rights, some third party content may be suppressed from the eBook and/or eChapter(s). 
+Editorial review has deemed that any suppressed content does not materially affect the overall learning experience. Cengage Learning reserves the right to remove additional content at any time if subsequent rights restrictions require it.

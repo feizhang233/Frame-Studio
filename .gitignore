@@ -1,0 +1,23 @@
+.venv/
+*.egg-info/
+__pycache__/
+.pytest_cache/
+*.py[cod]
+.DS_Store
+
+# Generated analysis artifacts
+result.json
+shear_force_v.png
+bending_moment_m.png
+
+# Frontend dependencies and build output
+frontend/node_modules/
+frontend/dist/
+frontend/*.tsbuildinfo
+frontend/vite.config.js
+frontend/vite.config.d.ts
+
+# Local application database
+data/*.sqlite3
+data/*.sqlite3-shm
+data/*.sqlite3-wal

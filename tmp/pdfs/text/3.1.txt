@@ -1,0 +1,303 @@
+--- PAGE 1 ---
+3.1  Derivation of the Stiffness Matrix for a Bar Element in Local Coordinates 73
+convenient (for numerical purposes) with respect to the overall structure. We will also discuss 
+the transformation of a vector from the local coordinate system to the global coordinate system, 
+using the concept of transformation matrices to express the stiffness matrix of an arbitrarily 
+oriented bar element in terms of the global system. We will solve three example plane truss 
+problems (see Figure 3–1 for a typical railroad trestle plane truss and a lift bridge truss over the 
+Illinois River) to illustrate the procedure of establishing the total stiffness matrix and equations 
+for solution of a structure.
+Next we extend the stiffness method to include space trusses. We will develop the trans-
+formation matrix in three-dimensional space and analyze two space trusses. Then we describe 
+the concept of symmetry and its use to reduce the size of a problem and facilitate its solution. 
+We will use an example truss problem to illustrate the concept and then describe how to handle 
+inclined, or skewed, supports.
+We will then use the principle of minimum potential energy and apply it to rederive the 
+bar element equations. We then compare a finite element solution to an exact solution for 
+a bar subjected to a linear varying distributed load. We will introduce Galerkin’s residual 
+method and then apply it to derive the bar element equations. Finally, we will introduce other 
+common residual methods—collocation, subdomain, and least squares—to merely expose 
+you to them. We illustrate these methods by solving a problem of a bar subjected to a linear 
+varying load.
+ 3.1  Derivation of the stiffness Matrix for a bar element 
+in Local Coordinates
+We will now consider the derivation of the stiffness matrix for the linear-elastic, constant 
+cross-sectional area (prismatic) bar element shown in Figure 3–2. The derivation here will 
+be directly applicable to the solution of pin-connected trusses. The bar is subjected to tensile 
+forces T directed along the local axis of the bar and applied at nodes 1 and 2.
+The bar element is assumed to have constant cross-sectional area A, modulus of elasticity 
+E, and initial length L. The nodal degrees of freedom are local axial displacements (longitudinal 
+displacements directed along the length of the bar) represented by 1u  and 2u  at the ends of the 
+element as shown in Figure 3–2.
+From Hooke’s law [Eq. (3.1.1)] and the strain/displacement relationship [Eq. (3.1.2) or 
+Eq. (1.4.1)], we write
+ Exxs «5  (3.1.1)
+ du
+dx
+x« 5  (3.1.2)
+From force equilibrium, we have
+ AT x constants 55  (3.1.3)
+for a bar with loads applied only at the ends. (We will consider distributed loading in 
+ Section  3.10.) Using Eq. (3.1.2) in Eq. (3.1.1) and then Eq. (3.1.1) in Eq. (3.1.3) and 
+Copyright 2017 Cengage Learning. All Rights Reserved. May not be copied, scanned, or duplicated, in whole or in part. Due to electronic rights, some third party content may be suppressed from the eBook and/or eChapter(s). 
+Editorial review has deemed that any suppressed content does not materially affect the overall learning experience. Cengage Learning reserves the right to remove additional content at any time if subsequent rights restrictions require it.
+
+--- PAGE 2 ---
+3  |  Development of Truss Equations74
+ ■ Figure 3–1 (a) A typical railroad trestle plane truss (By Daryl L. Logan); (b) lift bridge truss 
+over the Illinois River (By Daryl L. Logan) 
+Copyright 2017 Cengage Learning. All Rights Reserved. May not be copied, scanned, or duplicated, in whole or in part. Due to electronic rights, some third party content may be suppressed from the eBook and/or eChapter(s). 
+Editorial review has deemed that any suppressed content does not materially affect the overall learning experience. Cengage Learning reserves the right to remove additional content at any time if subsequent rights restrictions require it.
+
+--- PAGE 3 ---
+3.1  Derivation of the Stiffness Matrix for a Bar Element in Local Coordinates 75
+differentiating with respect to x, we obtain the differential equation governing the linear- elastic 
+bar behavior as
+ d
+dx AE du
+dx 0
+ 
+ 5  (3.1.4)
+where u is the axial displacement function along the element in the x direction and A and E are 
+written as though they were functions of x in the general form of the differential equation, even 
+though A and E will be assumed constant over the whole length of the bar in our derivations to 
+follow.
+The following assumptions are used in deriving the bar element stiffness matrix:
+1. The bar cannot sustain shear force or bending moment, that is,  
+5 01f y , 5 02f y , 5 01m  and 5 02m .
+2. Any effect of transverse displacement is ignored.
+3. Hooke’s law applies; that is, axial stress sx is related to axial strain «x by s «5 Exx .
+4. No intermediate applied loads.
+The steps previously outlined in Chapter 1 are now used to derive the stiffness matrix for 
+the bar element and then to illustrate a complete solution for a bar assemblage.
+Step 1 Select the Element Type
+Represent the bar by labeling nodes at each end and in general by labeling the element number 
+(Figure 3–2).
+As in deriving the spring element stiffness matrix, step 2 can be skipped at this time in 
+deriving the one-dimensional bar element stiffness matrix. To facilitate the derivation, we can 
+proceed directly to step 3
+Step 3 Define the Strain/Displacement and Stress/Strain Relationships
+The strain/displacement relationship is
+ uu
+L
+x
+21« 5   (3.1.5)
+and the stress/strain relationship by Hooke’s law is
+ Exxs «5  (3.1.6)
+Step 4 Derive the Element Stiffness Matrix and Equations
+The element stiffness matrix is derived as follows. From elementary mechanics, we have
+ TA xs5  (3.1.7)
+ ■ Figure 3–2 Bar subjected to tensile forces T; positive nodal displacements and forces are 
+all in the local x direction
+u1, f1x
+x, u
+u2, f2x
+TT
+L 21
+Copyright 2017 Cengage Learning. All Rights Reserved. May not be copied, scanned, or duplicated, in whole or in part. Due to electronic rights, some third party content may be suppressed from the eBook and/or eChapter(s). 
+Editorial review has deemed that any suppressed content does not materially affect the overall learning experience. Cengage Learning reserves the right to remove additional content at any time if subsequent rights restrictions require it.
+
+--- PAGE 4 ---
+3  |  Development of Truss Equations76
+Now, using Eqs. (3.1.5) and (3.1.6) in Eq. (3.1.7), we obtain
+ TA E uu
+L
+
+ 
+5 21  (3.1.8)
+Also, by the nodal force sign convention of Figure 3–2,
+ f Tx1 5  (3.1.9)
+When we substitute Eq. (3.1.8), Eq. (3.1.9) becomes
+ f AE
+L uux 5  ()12 1  (3.1.10)
+Similarly,
+ f Tx2 5  (3.1.11)
+or, by Eq. (3.1.8), Eq. (3.1.11) becomes
+ f AE
+L uux 5 ()22 1  (3.1.12)
+Expressing Eqs. (3.1.10) and (3.1.12) together in matrix form, we have
+ 11
+11
+1
+2
+1
+2
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+5 
+
+f
+f
+AE
+L
+u
+u
+x
+x
+ (3.1.13)
+Now, because { } {}5 []fk d , we have, from Eq. (3.1.13),
+ [] 11
+11
+
+
+
+5 
+k AE
+L  (3.1.14)
+Equation (3.1.14) represents the stiffness matrix for a bar element in local coordinates. 
+In Eq. (3.1.14), AE/L for a bar element is analogous to the spring constant k for a spring element.
+Step 5 Assemble Element Equations to Obtain Global or Total Equations
+Assemble the global stiffness and force matrices and global equations using the direct stiffness 
+method described in Chapter 2 (see Section 3.6 for an example truss). This step applies for 
+structures composed of more than one element such that (again)
+ Kk Ff
+e
+N
+e
+e
+N
+e[] [] and{ }{ }
+1
+()
+1
+()∑∑55
+55
+ (3.1.15)
+where now all local element stiffness matrices [] ()k e  must be transformed to global element 
+stiffness matrices [ k] (unless the local axes coincide with the global axes) before the direct 
+stiffness method is applied as indicated by Eq. (3.1.15). (This concept of coordinate and stiff-
+ness matrix transformations is described in Sections 3.3 and 3.4.)
+Step 6 Solve for the Nodal Displacements
+Determine the displacements by imposing boundary conditions and simultaneously solving a 
+system of equations, {}5{ }[ ]FK d .
+Copyright 2017 Cengage Learning. All Rights Reserved. May not be copied, scanned, or duplicated, in whole or in part. Due to electronic rights, some third party content may be suppressed from the eBook and/or eChapter(s). 
+Editorial review has deemed that any suppressed content does not materially affect the overall learning experience. Cengage Learning reserves the right to remove additional content at any time if subsequent rights restrictions require it.
+
+--- PAGE 5 ---
+3.1  Derivation of the Stiffness Matrix for a Bar Element in Local Coordinates 77
+Step 7 Solve for the Element Forces
+Finally, determine the strains and stresses in each element by back-substitution of the displace-
+ments into equations similar to Eqs. (3.1.5) and (3.1.6).
+We will now illustrate a solution for a one-dimensional bar problem.
+ExAMpl E 3.1
+For the three-bar assemblage shown in Figure 3–3, determine (a) the global stiffness matrix, 
+(b) the displacements of nodes 2 and 3, and (c) the reactions at nodes 1 and 4. A force 
+of 3000 lb is applied in the x direction at node 2. The length of each element is 30 in. 
+Let 30 10 psi653E  and 1i n25A  for elements 1 and 2, and let 15 10 psi653E  and 
+2i n25A  for element 3. Nodes 1 and 4 are fixed.
+ ■ Figure 3–3 Three-bar assemblage
+sOLUti ON:
+(a) Using Eq. (3.1.14), we find that the element stiffness matrices are
+ kk
+k
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+55 3 
+ 5 
+
+5 3 
+ 5 
+
+12
+23
+[] [] (1)(30 10 )
+30
+11
+11 10 11
+11
+lb
+in.
+34
+[] (2)(15 10 )
+30
+11
+11 10 11
+11
+lb
+in.
+(1)
+(2)
+(1)( 2)
+6
+6
+(3)
+6
+6
+ (3.1.16)
+where, again, the numbers above the matrices in Eqs. (3.1.16) indicate the displacements 
+associated with each matrix. Assembling the element stiffness matrices by the direct stiff-
+ness method, we obtain the global stiffness matrix as
+ 
+uu uu
+K
+
+
+
+
+
+
+
+
+
+
+
+
+5 
+
+1
+
+
+1
+
+[] 10
+1
+1
+0
+0
+1
+11
+1
+0
+0
+1
+11
+1
+0
+0
+1
+1
+lb
+in.
+12 34
+6
+ (3.1.17)
+Copyright 2017 Cengage Learning. All Rights Reserved. May not be copied, scanned, or duplicated, in whole or in part. Due to electronic rights, some third party content may be suppressed from the eBook and/or eChapter(s). 
+Editorial review has deemed that any suppressed content does not materially affect the overall learning experience. Cengage Learning reserves the right to remove additional content at any time if subsequent rights restrictions require it.

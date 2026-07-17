@@ -1,0 +1,426 @@
+import {
+  Activity,
+  ArrowDownToLine,
+  Brackets,
+  CircleDot,
+  Info,
+  PanelLeftOpen,
+  Settings2,
+  Triangle,
+  Trash2,
+  Waypoints,
+  X,
+} from 'lucide-react'
+import { useEffect, useState, type Dispatch, type ReactNode } from 'react'
+import type { ExampleModelDefinition } from '../data/exampleModel'
+import { SUPPORT_PRESETS } from '../data/supportPresets'
+import {
+  getElementProperties,
+  type ElementDefaults,
+  type FrameModel,
+  type ModelHistoryEntry,
+  type NodalLoadDefaults,
+  type Selection,
+  type SupportDefaults,
+  type ToolMode,
+} from '../domain/frame'
+import type { ModelAction } from '../state/modelReducer'
+import {
+  MaterialLibraryPanel,
+  ModelsPanel,
+  SectionLibraryPanel,
+  ToolSetupPanel,
+} from './LibraryPanels'
+
+interface PropertiesPanelProps {
+  model: FrameModel
+  activeTool: ToolMode
+  selection: Selection
+  elementDefaults: ElementDefaults
+  supportDefaults: SupportDefaults
+  nodalLoadDefaults: NodalLoadDefaults
+  modelHistory: ModelHistoryEntry[]
+  exampleModels: ExampleModelDefinition[]
+  isCollapsed: boolean
+  dispatch: Dispatch<ModelAction>
+  onToolChange: (tool: ToolMode) => void
+  onElementDefaultsChange: (value: ElementDefaults) => void
+  onSupportDefaultsChange: (value: SupportDefaults) => void
+  onNodalLoadDefaultsChange: (value: NodalLoadDefaults) => void
+  onRestoreModel: (entry: ModelHistoryEntry) => void
+  onDeleteHistory: (id: string) => void
+  onDeleteAllHistory: () => void
+  onDeleteExample: (id: string) => void
+  onDeleteAllExamples: () => void
+  onCreateExample: (entry: ModelHistoryEntry) => void
+  onLoadExample: (example: ExampleModelDefinition) => void
+  onSelectionChange: (selection: Selection) => void
+  onToggleCollapsed: () => void
+}
+
+function NumberField({
+  label,
+  value,
+  unit,
+  onChange,
+  min,
+  scientific = false,
+}: {
+  label: string
+  value: number
+  unit?: string
+  onChange: (value: number) => void
+  min?: number
+  scientific?: boolean
+}) {
+  const formatDraft = (number: number) => scientific ? number.toExponential(3) : String(number)
+  const [draft, setDraft] = useState(() => formatDraft(value))
+
+  useEffect(() => {
+    setDraft(formatDraft(value))
+  }, [scientific, value])
+
+  const commit = () => {
+    const parsed = Number(draft.trim())
+    if (!Number.isFinite(parsed) || (min !== undefined && parsed < min)) {
+      setDraft(formatDraft(value))
+      return
+    }
+    onChange(parsed)
+    setDraft(formatDraft(parsed))
+  }
+
+  return (
+    <label className="property-field">
+      <span>{label}</span>
+      <span className="field-input-wrap">
+        <input
+          type="text"
+          inputMode="decimal"
+          value={draft}
+          onFocus={(event) => event.currentTarget.select()}
+          onChange={(event) => setDraft(event.target.value)}
+          onBlur={commit}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter') event.currentTarget.blur()
+            if (event.key === 'Escape') {
+              setDraft(formatDraft(value))
+              event.currentTarget.blur()
+            }
+          }}
+        />
+        {unit && <span className="field-unit">{unit}</span>}
+      </span>
+    </label>
+  )
+}
+
+function PropertySection({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <section className="property-section">
+      <h3>{title}</h3>
+      <div className="property-section-content">{children}</div>
+    </section>
+  )
+}
+
+function PanelHeader({
+  icon,
+  eyebrow,
+  title,
+  onClose,
+  onToggleCollapsed,
+}: {
+  icon: ReactNode
+  eyebrow: string
+  title: string
+  onClose?: () => void
+  onToggleCollapsed: () => void
+}) {
+  return (
+    <div
+      className="properties-header"
+      onDoubleClick={(event) => {
+        if ((event.target as HTMLElement).closest('button')) return
+        onToggleCollapsed()
+      }}
+      title="Double-click to collapse Properties"
+    >
+      <div className="properties-identity">
+        <span className="properties-icon">{icon}</span>
+        <div>
+          <span className="eyebrow">{eyebrow}</span>
+          <h2>{title}</h2>
+        </div>
+      </div>
+      {onClose && <button type="button" onClick={onClose} aria-label="清除選取"><X size={18} /></button>}
+    </div>
+  )
+}
+
+function DeleteButton({ onClick, label }: { onClick: () => void; label: string }) {
+  return (
+    <button className="delete-button" type="button" onClick={onClick}>
+      <Trash2 size={17} />
+      {label}
+    </button>
+  )
+}
+
+export function PropertiesPanel({
+  model,
+  activeTool,
+  selection,
+  elementDefaults,
+  supportDefaults,
+  nodalLoadDefaults,
+  modelHistory,
+  exampleModels,
+  isCollapsed,
+  dispatch,
+  onToolChange,
+  onElementDefaultsChange,
+  onSupportDefaultsChange,
+  onNodalLoadDefaultsChange,
+  onRestoreModel,
+  onDeleteHistory,
+  onDeleteAllHistory,
+  onDeleteExample,
+  onDeleteAllExamples,
+  onCreateExample,
+  onLoadExample,
+  onSelectionChange,
+  onToggleCollapsed,
+}: PropertiesPanelProps) {
+  const close = () => onSelectionChange(null)
+  const deleteEntity = (entity: NonNullable<Selection>['type'], id: number) => {
+    dispatch({ type: 'delete', entity, id })
+    close()
+  }
+
+  if (isCollapsed) {
+    return (
+      <aside className="properties-panel properties-panel--collapsed">
+        <button className="properties-collapse-trigger" type="button" onClick={onToggleCollapsed} aria-label="Open Properties">
+          <PanelLeftOpen size={19} />
+          <span>Properties</span>
+        </button>
+      </aside>
+    )
+  }
+
+  if (activeTool === 'material') {
+    return <MaterialLibraryPanel model={model} dispatch={dispatch} elementDefaults={elementDefaults} onElementDefaultsChange={onElementDefaultsChange} onToggleCollapsed={onToggleCollapsed} />
+  }
+  if (activeTool === 'section') {
+    return <SectionLibraryPanel model={model} dispatch={dispatch} elementDefaults={elementDefaults} onElementDefaultsChange={onElementDefaultsChange} onToggleCollapsed={onToggleCollapsed} />
+  }
+  if (activeTool === 'models') {
+    return <ModelsPanel history={modelHistory} examples={exampleModels} onRestore={onRestoreModel} onLoadExample={onLoadExample} onDeleteHistory={onDeleteHistory} onDeleteAllHistory={onDeleteAllHistory} onDeleteExample={onDeleteExample} onDeleteAllExamples={onDeleteAllExamples} onCreateExample={onCreateExample} onToggleCollapsed={onToggleCollapsed} />
+  }
+  if (!selection && activeTool !== 'select') {
+    return <ToolSetupPanel tool={activeTool} model={model} elementDefaults={elementDefaults} supportDefaults={supportDefaults} nodalLoadDefaults={nodalLoadDefaults} onElementDefaultsChange={onElementDefaultsChange} onSupportDefaultsChange={onSupportDefaultsChange} onNodalLoadDefaultsChange={onNodalLoadDefaultsChange} onToolChange={onToolChange} onToggleCollapsed={onToggleCollapsed} />
+  }
+
+  if (!selection) {
+    return (
+      <aside className="properties-panel">
+        <PanelHeader icon={<Settings2 size={19} />} eyebrow="WORKSPACE" title="Properties" onToggleCollapsed={onToggleCollapsed} />
+        <div className="properties-scroll">
+          <div className="model-overview-card">
+            <div className="overview-orbit"><Brackets size={25} /></div>
+            <strong>{model.name}</strong>
+            <span>SI units · Linear static</span>
+            <div className="overview-stats">
+              <div><b>{model.nodes.length}</b><span>Nodes</span></div>
+              <div><b>{model.elements.length}</b><span>Elements</span></div>
+              <div><b>{model.supports.length}</b><span>Supports</span></div>
+            </div>
+          </div>
+          <PropertySection title="Analysis settings">
+            <NumberField
+              label="Field samples"
+              value={model.options.number_of_points}
+              min={2}
+              onChange={(number_of_points) => dispatch({ type: 'updateOptions', patch: { number_of_points } })}
+            />
+            <NumberField
+              label="Deformation scale"
+              value={model.options.deformation_scale}
+              onChange={(deformation_scale) => dispatch({ type: 'updateOptions', patch: { deformation_scale } })}
+            />
+          </PropertySection>
+          <div className="properties-tip"><Info size={16} /><span>Select an object on the canvas to edit its parameters.</span></div>
+        </div>
+      </aside>
+    )
+  }
+
+  if (selection.type === 'node') {
+    const node = model.nodes.find((item) => item.id === selection.id)
+    if (!node) return null
+    const connectedElements = model.elements.filter((item) => item.node_i === node.id || item.node_j === node.id)
+    return (
+      <aside className="properties-panel">
+        <PanelHeader icon={<CircleDot size={19} />} eyebrow="NODE" title={`N${node.id}`} onClose={close} onToggleCollapsed={onToggleCollapsed} />
+        <div className="properties-scroll">
+          <PropertySection title="Coordinates">
+            <NumberField label="Global X" value={node.x} unit="m" onChange={(x) => dispatch({ type: 'updateNode', id: node.id, patch: { x } })} />
+            <NumberField label="Global Y" value={node.y} unit="m" onChange={(y) => dispatch({ type: 'updateNode', id: node.id, patch: { y } })} />
+          </PropertySection>
+          <PropertySection title="Connectivity">
+            <div className="read-only-row connected-elements-row"><span>Connected elements</span><b>{connectedElements.length > 0 ? connectedElements.map((item) => `E${item.id}`).join(' · ') : 'None'}</b></div>
+            <div className="read-only-row"><span>Degrees of freedom</span><b>u · v · φ</b></div>
+          </PropertySection>
+          <DeleteButton label="Delete node" onClick={() => deleteEntity('node', node.id)} />
+        </div>
+      </aside>
+    )
+  }
+
+  if (selection.type === 'element') {
+    const element = model.elements.find((item) => item.id === selection.id)
+    if (!element) return null
+    const properties = getElementProperties(model, element)
+    return (
+      <aside className="properties-panel">
+        <PanelHeader icon={<Waypoints size={19} />} eyebrow="FRAME ELEMENT" title={`E${element.id}`} onClose={close} onToggleCollapsed={onToggleCollapsed} />
+        <div className="properties-scroll">
+          <PropertySection title="Connectivity">
+            <label className="property-field"><span>Start node</span><select value={element.node_i} onChange={(event) => dispatch({ type: 'updateElement', id: element.id, patch: { node_i: Number(event.target.value) } })}>{model.nodes.map((node) => <option key={node.id} value={node.id}>N{node.id}</option>)}</select></label>
+            <label className="property-field"><span>End node</span><select value={element.node_j} onChange={(event) => dispatch({ type: 'updateElement', id: element.id, patch: { node_j: Number(event.target.value) } })}>{model.nodes.map((node) => <option key={node.id} value={node.id}>N{node.id}</option>)}</select></label>
+          </PropertySection>
+          <PropertySection title="Assignments">
+            <label className="property-field"><span>Material</span><select value={element.material_id ?? ''} onChange={(event) => { const material = model.materials.find((item) => item.id === event.target.value); dispatch({ type: 'updateElement', id: element.id, patch: { material_id: material?.id ?? null, E: material?.E ?? null } }) }}><option value="">Unassigned</option>{model.materials.map((material) => <option key={material.id} value={material.id}>{material.name}</option>)}</select></label>
+            <label className="property-field"><span>Section</span><select value={element.section_id ?? ''} onChange={(event) => { const section = model.sections.find((item) => item.id === event.target.value); dispatch({ type: 'updateElement', id: element.id, patch: { section_id: section?.id ?? null, A: section?.A ?? null, I: section?.I ?? null } }) }}><option value="">Unassigned</option>{model.sections.map((section) => <option key={section.id} value={section.id}>{section.name}</option>)}</select></label>
+            <div className="assignment-jump-row"><button type="button" onClick={() => onToolChange('material')}>Material library</button><button type="button" onClick={() => onToolChange('section')}>Section library</button></div>
+          </PropertySection>
+          <PropertySection title="Effective properties">
+            <div className={`read-only-row ${properties.E === null ? 'is-missing' : ''}`}><span>Elastic modulus E</span><b>{properties.E === null ? 'Not set' : properties.E.toExponential(3)}</b></div>
+            <div className={`read-only-row ${properties.A === null ? 'is-missing' : ''}`}><span>Cross-section A</span><b>{properties.A === null ? 'Not set' : properties.A.toExponential(3)}</b></div>
+            <div className={`read-only-row ${properties.I === null ? 'is-missing' : ''}`}><span>Moment of inertia I</span><b>{properties.I === null ? 'Not set' : properties.I.toExponential(3)}</b></div>
+          </PropertySection>
+          <DeleteButton label="Delete element" onClick={() => deleteEntity('element', element.id)} />
+        </div>
+      </aside>
+    )
+  }
+
+  if (selection.type === 'support') {
+    const support = model.supports.find((item) => item.node_id === selection.id)
+    if (!support) return null
+    const restraints = [
+      { key: 'u' as const, label: "Local u'", symbol: "u'" },
+      { key: 'v' as const, label: "Local v'", symbol: "v'" },
+      { key: 'phi' as const, label: 'Rotation', symbol: 'φ' },
+    ]
+    return (
+      <aside className="properties-panel">
+        <PanelHeader icon={<Triangle size={19} />} eyebrow="SUPPORT" title={`N${support.node_id}`} onClose={close} onToggleCollapsed={onToggleCollapsed} />
+        <div className="properties-scroll">
+          <PropertySection title="Support type">
+            <div className="support-presets">
+              {SUPPORT_PRESETS.map((preset) => {
+                const isActive = support.u === preset.restraints.u && support.v === preset.restraints.v && support.phi === preset.restraints.phi
+                return (
+                  <button
+                    key={preset.label}
+                    type="button"
+                    aria-pressed={isActive}
+                    className={isActive ? 'is-active' : ''}
+                    onClick={() => dispatch({
+                      type: 'updateSupport',
+                      nodeId: support.node_id,
+                      patch: {
+                        ...preset.restraints,
+                        u_value: 0,
+                        v_value: 0,
+                        phi_value: 0,
+                      },
+                    })}
+                  >
+                    <span className={`support-preset-symbol support-preset-symbol--${preset.symbol}`} aria-hidden="true"><i /></span>
+                    <span><b>{preset.label}</b><small>{preset.detail}</small></span>
+                  </button>
+                )
+              })}
+            </div>
+          </PropertySection>
+          <PropertySection title="Support orientation">
+            <NumberField label="Local u′ axis angle" value={support.angle} unit="deg" onChange={(angle) => dispatch({ type: 'updateSupport', nodeId: support.node_id, patch: { angle } })} />
+            <div className="properties-tip"><Info size={16} /><span>Positive angle rotates the local u′ axis counter-clockwise from global +X.</span></div>
+          </PropertySection>
+          <PropertySection title="Restrained DOF">
+            <div className="restraint-grid">
+              {restraints.map((item) => (
+                <button
+                  key={item.key}
+                  type="button"
+                  aria-pressed={support[item.key]}
+                  className={support[item.key] ? 'is-active' : ''}
+                  onClick={() => {
+                    const restrainedCount = restraints.filter((restraint) => support[restraint.key]).length
+                    if (support[item.key] && restrainedCount === 1) return
+                    const valueKey = `${item.key}_value` as 'u_value' | 'v_value' | 'phi_value'
+                    dispatch({
+                      type: 'updateSupport',
+                      nodeId: support.node_id,
+                      patch: { [item.key]: !support[item.key], ...(support[item.key] ? { [valueKey]: 0 } : {}) },
+                    })
+                  }}
+                >
+                  <b>{item.symbol}</b><span>{item.label}</span>
+                </button>
+              ))}
+            </div>
+          </PropertySection>
+          <PropertySection title="Prescribed displacement">
+            <NumberField label="u" value={support.u_value} unit="m" onChange={(u_value) => dispatch({ type: 'updateSupport', nodeId: support.node_id, patch: { u_value } })} />
+            <NumberField label="v" value={support.v_value} unit="m" onChange={(v_value) => dispatch({ type: 'updateSupport', nodeId: support.node_id, patch: { v_value } })} />
+            <NumberField label="φ" value={support.phi_value} unit="rad" onChange={(phi_value) => dispatch({ type: 'updateSupport', nodeId: support.node_id, patch: { phi_value } })} />
+          </PropertySection>
+          <DeleteButton label="Delete support" onClick={() => deleteEntity('support', support.node_id)} />
+        </div>
+      </aside>
+    )
+  }
+
+  if (selection.type === 'nodalLoad') {
+    const load = model.nodal_loads.find((item) => item.node_id === selection.id)
+    if (!load) return null
+    return (
+      <aside className="properties-panel">
+        <PanelHeader icon={<ArrowDownToLine size={19} />} eyebrow="NODAL LOAD" title={`N${load.node_id}`} onClose={close} onToggleCollapsed={onToggleCollapsed} />
+        <div className="properties-scroll">
+          <PropertySection title="Global components">
+            <NumberField label="Force Fx" value={load.fx} unit="N" onChange={(fx) => dispatch({ type: 'updateNodalLoad', nodeId: load.node_id, patch: { fx } })} />
+            <NumberField label="Force Fy" value={load.fy} unit="N" onChange={(fy) => dispatch({ type: 'updateNodalLoad', nodeId: load.node_id, patch: { fy } })} />
+            <NumberField label="Moment Mz" value={load.mz} unit="N·m" onChange={(mz) => dispatch({ type: 'updateNodalLoad', nodeId: load.node_id, patch: { mz } })} />
+          </PropertySection>
+          <div className="properties-tip"><Activity size={16} /><span>Positive moment acts counter-clockwise about +Z.</span></div>
+          <DeleteButton label="Delete load" onClick={() => deleteEntity('nodalLoad', load.node_id)} />
+        </div>
+      </aside>
+    )
+  }
+
+  const load = model.distributed_loads.find((item) => item.element_id === selection.id)
+  if (!load) return null
+  return (
+    <aside className="properties-panel">
+      <PanelHeader icon={<ArrowDownToLine size={19} />} eyebrow="DISTRIBUTED LOAD" title={`E${load.element_id}`} onClose={close} onToggleCollapsed={onToggleCollapsed} />
+      <div className="properties-scroll">
+        <PropertySection title="Local i-end">
+          <NumberField label="Axial qx,i" value={load.qx_i} unit="N/m" onChange={(qx_i) => dispatch({ type: 'updateDistributedLoad', elementId: load.element_id, patch: { qx_i } })} />
+          <NumberField label="Transverse qy,i" value={load.qy_i} unit="N/m" onChange={(qy_i) => dispatch({ type: 'updateDistributedLoad', elementId: load.element_id, patch: { qy_i } })} />
+        </PropertySection>
+        <PropertySection title="Local j-end">
+          <NumberField label="Axial qx,j" value={load.qx_j} unit="N/m" onChange={(qx_j) => dispatch({ type: 'updateDistributedLoad', elementId: load.element_id, patch: { qx_j } })} />
+          <NumberField label="Transverse qy,j" value={load.qy_j} unit="N/m" onChange={(qy_j) => dispatch({ type: 'updateDistributedLoad', elementId: load.element_id, patch: { qy_j } })} />
+        </PropertySection>
+        <div className="properties-tip"><Activity size={16} /><span>Components follow each element’s local +x / +y axes.</span></div>
+        <DeleteButton label="Delete load" onClick={() => deleteEntity('distributedLoad', load.element_id)} />
+      </div>
+    </aside>
+  )
+}

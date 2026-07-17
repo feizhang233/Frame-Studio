@@ -1,0 +1,1952 @@
+--- PAGE 1 ---
+4  |  Development of Beam Equations182
+Now considering the boundary conditions, or constraints, of the fixed support at node 1 and 
+the hinge (pinned) support at node 3, we have
+ vvf 55 500 011 3  (4.2.4)
+On considering the third, fourth, and sixth equations of Eqs. (4.2.3) corresponding to the rows 
+with unknown degrees of freedom and using Eqs. (4.2.4), we obtain
+ 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+EI
+L
+L
+LL
+LL L
+v1000
+1000
+0
+24 06
+08 2
+62 4
+3
+22
+22
+2
+2
+3
+f
+f
+2
+5  (4.2.5)
+where F y 10002 52  lb, M 5 10002  lb-ft, and M 5 03  have been substituted into the reduced 
+set of equations. We could now solve Eq. (4.2.5) simultaneously for the unknown nodal dis -
+placement v2 and the unknown nodal rotations 2f  and f3. We leave the final solution for you 
+to obtain. Section 4.3 provides complete solutions to beam problems.
+ 4.3  Examples of Beam analysis Using the Direct 
+stiffness Method
+We will now perform complete solutions for beams with various boundary supports and loads 
+to illustrate further the use of the equations developed in Section 4.1.
+ExAMpl E 4.1
+Using the direct stiffness method, solve the problem of the propped cantilever beam sub -
+jected to end load P in Figure 4–8. The beam is assumed to have constant EI and length 2L. 
+It is supported by a roller at midlength and is built in at the right end.
+	■ Figure 4–8 Propped cantilever beam
+sOLUti ON:
+We have discretized the beam and established global coordinate axes as shown in  Figure 4–8. 
+We will determine the nodal displacements and rotations, the reactions, and the complete 
+shear force and bending moment diagrams.
+Copyright 2017 Cengage Learning. All Rights Reserved. May not be copied, scanned, or duplicated, in whole or in part. Due to electronic rights, some third party content may be suppressed from the eBook and/or eChapter(s). 
+Editorial review has deemed that any suppressed content does not materially affect the overall learning experience. Cengage Learning reserves the right to remove additional content at any time if subsequent rights restrictions require it.
+
+--- PAGE 2 ---
+4.3  Examples of Beam Analysis Using the Direct Stiffness Method 183
+Using Eq. (4.1.14) for each element, along with superposition, we obtain the structure 
+total stiffness matrix by the same method as described in Section 4.2 for obtaining the stiff-
+ness matrix in Eq. (4.2.3). The [K] is
+ 
+[]
+12 61 26 00
+46 20 0
+12 12 66 12 6
+44 62
+12 6
+Symmetry4
+11 22 33
+3
+22
+22 2
+2
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ff f
+5
+2
+2
+12 12
+12
+2
+vv v
+K EI
+L
+LL
+LL L
+LL L
+LL LL
+L
+L
+ (4.3.1)
+The governing equations for the beam are then given by
+ 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+F
+M
+F
+M
+F
+M
+EI
+L
+LL
+LL LL
+LL
+LL LL L
+LL
+LL LL
+v
+v
+v
+y
+y
+y
+12 61 26 00
+64 62 00
+12 62 40 12 6
+62 08 62
+00 12 61 26
+00 62 64
+1
+1
+2
+2
+3
+3
+3
+22
+222
+22
+1
+1
+2
+2
+3
+3
+f
+f
+f
+5
+2
+2
+22 2
+2
+22 2
+2
+ (4.3.2)
+On applying the boundary conditions
+ vv 00 023 3f55 5  (4.3.3)
+and partitioning the equations associated with unknown displacements [the first, second, and 
+fourth equations of Eqs. (4.3.2)] from those equations associated with known displacements 
+in the usual manner, we obtain the final set of equations for a longhand solution as
+ 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+P EI
+L
+LL
+LL L
+LL L
+v
+0
+0
+12 66
+64 2
+62 8
+3
+22
+22
+1
+1
+2
+f
+f
+2
+5  (4.3.4)
+where FPy1 52 , M 5 01 , and M 5 02  have been used in Eq. (4.3.4). We will now solve 
+Eq. (4.3.4) for the nodal displacement and nodal slopes. We obtain the transverse displace-
+ment at node 1 as
+ 7
+12
+1
+3
+v PL
+EI52  (4.3.5)
+where the minus sign indicates that the displacement of node 1 is downward.
+Copyright 2017 Cengage Learning. All Rights Reserved. May not be copied, scanned, or duplicated, in whole or in part. Due to electronic rights, some third party content may be suppressed from the eBook and/or eChapter(s). 
+Editorial review has deemed that any suppressed content does not materially affect the overall learning experience. Cengage Learning reserves the right to remove additional content at any time if subsequent rights restrictions require it.
+
+--- PAGE 3 ---
+4  |  Development of Beam Equations184
+The slopes are
+ PL
+EI
+PL
+EI
+3
+44
+1
+2
+2
+2
+f f55  (4.3.6)
+where the positive signs indicate counterclockwise rotations at nodes 1 and 2.
+We will now determine the global nodal forces. To do this, we substitute the known 
+global nodal displacements and rotations, Eqs. (4.3.5) and (4.3.6), into Eq. (4.3.2). The 
+resulting equations are
+ 
+12 61 26 00
+64 62 00
+12 62 40 12 6
+62 08 62
+00 12 61 26
+00 62 64
+7
+12
+3
+4
+0
+4
+0
+0
+1
+1
+2
+2
+3
+3
+3
+22
+22 2
+22
+3
+2
+2
+F
+M
+F
+M
+F
+M
+EI
+L
+LL
+LL LL
+LL
+LL LL L
+LL
+LL LL
+PL
+EI
+PL
+EI
+PL
+EI
+y
+y
+y
+5
+2
+2
+22 2
+2
+22 2
+2
+2
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ (4.3.7)
+Multiplying the matrices on the right-hand side of Eq. (4.3.7), we obtain the global nodal 
+forces and moments as
+ 
+FP MF P
+MF PM PL
+yy
+y
+0 5
+2
+0 3
+2
+1
+2
+11 2
+23 3
+52 55
+55 25
+ (4.3.8)
+The results of Eqs. (4.3.8) can be interpreted as follows: The value of FPy1 52  is the 
+applied force at node 1, as it must be. The values of F y2 , F y3 , and M3 are the reactions from 
+the supports as felt by the beam. The moments M1 and M2 are zero because no applied or 
+reactive moments are present on the beam at node 1 or node 2.
+It is generally necessary to determine the local nodal forces associated with each ele -
+ment of a large structure to perform a stress analysis of the entire structure. We will thus 
+consider the forces in element 1 of this example to illustrate this concept (element 2 can be 
+treated similarly). Using Eqs. (4.3.5) and (4.3.6) in the fk d{ } [] {}5  equation for element 
+1 [also see Eq. (4.1.13)], we have
+ 5
+2
+2
+22 2
+2
+2
+12 61 26
+64 62
+12 61 26
+62 64
+7
+12
+3
+4
+0
+4
+1
+(1)
+1
+(1)
+2
+(1)
+2
+(1)
+3
+22
+22
+3
+2
+2
+f
+m
+f
+m
+EI
+L
+LL
+LL LL
+LL
+LL LL
+PL
+EI
+PL
+EI
+PL
+EI
+y
+y
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ (4.3.9)
+Copyright 2017 Cengage Learning. All Rights Reserved. May not be copied, scanned, or duplicated, in whole or in part. Due to electronic rights, some third party content may be suppressed from the eBook and/or eChapter(s). 
+Editorial review has deemed that any suppressed content does not materially affect the overall learning experience. Cengage Learning reserves the right to remove additional content at any time if subsequent rights restrictions require it.
+
+--- PAGE 4 ---
+4.3  Examples of Beam Analysis Using the Direct Stiffness Method 185
+Equation (4.3.9) yields
+ f Pm fP mP Lyy 011 2252 55 52  (4.3.10)
+A free-body diagram of element 1, shown in Figure 4–9(a), should help you to understand 
+the results of Eqs. (4.3.10). The figure shows a nodal transverse force of negative P at node 
+1 and of positive P and negative moment PL at node 2. These values are consistent with 
+the results given by Eqs. (4.3.10). For completeness, the free-body diagram of element 2 is 
+shown in Figure 4–9(b). We can easily verify the element nodal forces by writing an equa-
+tion similar to Eq. (4.3.9). From the results of Eqs. (4.3.8), the nodal forces and moments 
+for the whole beam are shown on the beam in Figure 4–10. Using the beam sign 
+conventions established in Section 4.1, we obtain the shear force V and bending 
+moment M diagrams shown in Figures 4–11 and 4–12.
+	■ Figure 4–12 Bending moment diagram for the beam of Figure 4–10
+	■ Figure 4–9 Free-body diagrams showing forces and moments on (a) element 1 and  
+(b) element 2
+	■ Figure 4–10 Nodal forces and moment on the beam
+	■ Figure 4–11 Shear force diagram for the beam of Figure 4–10
+Copyright 2017 Cengage Learning. All Rights Reserved. May not be copied, scanned, or duplicated, in whole or in part. Due to electronic rights, some third party content may be suppressed from the eBook and/or eChapter(s). 
+Editorial review has deemed that any suppressed content does not materially affect the overall learning experience. Cengage Learning reserves the right to remove additional content at any time if subsequent rights restrictions require it.
+
+--- PAGE 5 ---
+4  |  Development of Beam Equations186
+In general, for complex beam structures, we will use the element local forces to determine 
+the shear force and bending moment diagrams for each element. We can then use these values 
+for design purposes. Chapter 5 will further discuss this concept as used in computer codes.
+ExAMpl E 4.2
+Determine the nodal displacements and rotations, global nodal forces, and element forces 
+for the beam shown in Figure 4–13. We have discretized the beam as indicated by the node 
+numbering. The beam is fixed at nodes 1 and 5 and has a roller support at node 3. Vertical 
+loads of 10,000 lb each are applied at nodes 2 and 4. Let E 5330 10 6 psi and I 5 500 in4 
+throughout the beam.
+	■ Figure 4–13 Beam example
+ 
+ff f ff
+f
+f
+f
+f
+f
+5
+2
+2
+22 12 12
+21 12
+22 12 12
+21 12
+22 12 12
+21 12
+22 2
+2
+12 61 26 00 00 00
+64 62 00 00 00
+12 61 21 26 61 26 00 00
+62 66 44 62 00 00
+00 12 61 21 26 61 26 00
+00 62 66 44 62 00
+00 00 12 61 21 26 61 26
+00 00 62 66 44 62
+00 00 00 12 61 26
+00 00 00 62 64
+1
+1
+2
+2
+3
+3
+4
+4
+5
+5
+3
+11 22 3 3 44 55
+22
+22 22
+22 22
+22 22
+22
+1
+1
+2
+2
+3
+3
+4
+4
+5
+5
+F
+M
+F
+M
+F
+M
+F
+M
+F
+M
+EI
+L
+vv vv v
+LL
+LL LL
+LL LL
+LL LL LL LL
+LL LL
+LL LL LL LL
+LL LL
+LL LLL LL L
+LL
+LL LL
+v
+v
+v
+v
+v
+y
+y
+y
+y
+y
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ 
+sOLUti ON:
+We must have consistent units; therefore, the 10-ft lengths in Figure 4–13 will be con -
+verted to 120 in. during the solution. Using Eq. (4.1.10), along with superposition of the 
+four beam element stiffness matrices, we obtain the global stiffness matrix and the global 
+equations as given in Eq. (4.3.11). Here the lengths of each element are the same. Thus, 
+we can factor an L out of the superimposed stiffness matrix.
+(4.3.11)
+For a longhand solution, we reduce Eq. (4.3.11) in the usual manner by application 
+of the boundary conditions
+ ff5 555 5 011 35 5vv v
+Copyright 2017 Cengage Learning. All Rights Reserved. May not be copied, scanned, or duplicated, in whole or in part. Due to electronic rights, some third party content may be suppressed from the eBook and/or eChapter(s). 
+Editorial review has deemed that any suppressed content does not materially affect the overall learning experience. Cengage Learning reserves the right to remove additional content at any time if subsequent rights restrictions require it.
+
+--- PAGE 6 ---
+4.3  Examples of Beam Analysis Using the Direct Stiffness Method 187
+The resulting equation is
+ 
+f
+f
+f
+2
+2
+52
+2
+10, 000
+0
+0
+10, 000
+0
+24 06 00
+08 20 0
+62 86 2
+00 62 40
+00 20 8
+3
+22
+22 2
+2
+22
+2
+2
+3
+4
+4
+EI
+L
+L
+LL
+LL LL L
+L
+LL
+v
+v
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ (4.3.12)
+The rotations (slopes) at nodes 2–4 are equal to zero because of symmetry in loading, 
+geometry, and material properties about a plane perpendicular to the beam length and 
+passing through node 3. Therefore, f ff55 5 023 4 , and we can further reduce 
+Eq. (4.3.12) to
+ 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+EI
+L
+v
+v
+10, 000
+10, 000
+24 0
+02 43
+2
+4
+2
+2 5  (4.3.13)
+Solving for the displacements using L 5 120 in., E 5330 10 6 psi, and 5 500 in.4I  in 
+Eq. (4.3.13), we obtain
+ vv 55 20.048 in.24  (4.3.14)
+as expected because of symmetry.
+As observed from the solution of this problem, the greater the static redundancy 
+(degrees of static indeterminacy or number of unknown forces and moments that cannot 
+be determined by equations of statics), the smaller the kinematic redundancy (unknown 
+nodal degrees of freedom, such as displacements or slopes)—hence, the fewer the number 
+of unknown degrees of freedom to be solved for. Moreover, the use of symmetry, when 
+applicable, reduces the number of unknown degrees of freedom even further. We can now 
+back-substitute the results from Eq. (4.3.14), along with the numerical values for E, I, and 
+L, into Eq. (4.3.12) to determine the global nodal forces as
+ 
+FM
+FM
+FM
+FM
+FM
+y
+y
+y
+y
+y
+5000 lb 20, 000lb-ft
+10, 000lb 0
+10, 000 lb 0
+10, 000 lb 0
+5000 lb 25, 000lb-ft
+11
+22
+33
+44
+55
+55
+55
+55
+55
+55 2
+ (4.3.15)
+Once again, the global nodal forces (and moments) at the support nodes (nodes 1, 3, and 5) 
+can be interpreted as the reaction forces, and the global nodal forces at nodes 2 and 4 are 
+the applied nodal forces.
+However, for large structures we must obtain the local element shear force and bending 
+moment at each node end of the element because these values are used in the design/analysis 
+Copyright 2017 Cengage Learning. All Rights Reserved. May not be copied, scanned, or duplicated, in whole or in part. Due to electronic rights, some third party content may be suppressed from the eBook and/or eChapter(s). 
+Editorial review has deemed that any suppressed content does not materially affect the overall learning experience. Cengage Learning reserves the right to remove additional content at any time if subsequent rights restrictions require it.
+
+--- PAGE 7 ---
+4  |  Development of Beam Equations188
+process. We will again illustrate this concept for the element connecting nodes 1 and 2 in 
+Figure 4–13. Using the local equations for this element, for which all nodal displacements 
+have now been determined, we obtain
+ 
+12 61 26
+64 62
+12 61 26
+62 64
+0
+0
+0.048
+0
+1
+(1)
+1
+(1)
+2
+(1)
+2
+(1)
+3
+22
+22
+1
+1
+2
+2
+f
+f
+5
+2
+2
+22 2
+2
+5
+5
+52
+5
+f
+m
+f
+m
+EI
+L
+LL
+LL LL
+LL
+LL LL
+v
+v
+y
+y
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ (4.3.16)
+Simplifying Eq. (4.3.16), we have
+ 
+5000 lb
+25, 000lb-ft
+5000 lb
+25, 000lb-ft
+1
+(1)
+1
+(1)
+2
+(1)
+2
+(1)
+5 2
+f
+m
+f
+m
+y
+y
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ (4.3.17)
+If you wish, you can draw a free-body diagram to confirm the equilibrium of the element.
+Finally, you should note that because of reflective symmetry about a vertical plane passing 
+through node 3, we could have initially considered one-half of this beam and used the follow-
+ing model. The fixed support at node 3 is due to the slope being zero at node 3 because of the 
+symmetry in the loading and support conditions.
+ExAMpl E 4.3
+Determine the nodal displacements and rotations and the global and element forces for the 
+beam shown in Figure 4–14. We have discretized the beam as shown by the node numbering. 
+The beam is fixed at node 1, has a roller support at node 2, and has an elastic spring support 
+at node 3. A downward vertical force of P 5 50 kN is applied at node 3. Let E 5 210 GPa 
+and I 21 0m4453 2  throughout the beam, and let k 5 200 kN/m.
+Copyright 2017 Cengage Learning. All Rights Reserved. May not be copied, scanned, or duplicated, in whole or in part. Due to electronic rights, some third party content may be suppressed from the eBook and/or eChapter(s). 
+Editorial review has deemed that any suppressed content does not materially affect the overall learning experience. Cengage Learning reserves the right to remove additional content at any time if subsequent rights restrictions require it.
+
+--- PAGE 8 ---
+4.3  Examples of Beam Analysis Using the Direct Stiffness Method 189
+sOLUti ON:
+Using Eq. (4.1.14) for each beam element and Eq. (2.2.18) for the spring element as well 
+as the direct stiffness method, we obtain the structure stiffness matrix as
+ 
+[]
+12 61 26 00 0
+46 20 00
+24 01 26 0
+86 20
+12 6
+40
+Symmetry
+3
+11 22 33 4
+2
+22
+33
+2
+3
+2
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+K EI
+L
+vv vv
+LL
+LL L
+L
+LL L
+kL
+EI L kL
+EI
+L
+kL
+EI
+ff f
+5
+2
+2
+2
+2
+12 2
+ 
+(4.3.18a)
+where the spring stiffness matrix ks[]  given below by Eq. (4.3.18b) has been directly added 
+into the global stiffness matrix corresponding to its degrees of freedom at nodes 3 and 4.
+ k
+vv
+kk
+kks
+
+
+
+5
+2
+2[]
+34
+ (4.3.18b)
+It is easier to solve the problem using the general variables, later making numerical substitutions 
+into the final displacement expressions. The governing equations for the beam are then given by
+ 
+12 61 26 00 0
+46 20 00
+24 01 26 0
+86 20
+12 6
+40
+Symmetry
+1
+1
+2
+2
+3
+3
+4
+3
+22
+22
+2
+1
+1
+2
+2
+3
+3
+4
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+F
+M
+F
+M
+F
+M
+F
+EI
+L
+LL
+LL L
+L
+LL L
+kL k
+L
+k
+v
+v
+v
+v
+y
+y
+y
+y
+99
+9
+f
+f
+f
+5
+2
+2
+2
+2
+12 2
+ (4.3.19)
+	■ Figure 4–14 Beam example
+Copyright 2017 Cengage Learning. All Rights Reserved. May not be copied, scanned, or duplicated, in whole or in part. Due to electronic rights, some third party content may be suppressed from the eBook and/or eChapter(s). 
+Editorial review has deemed that any suppressed content does not materially affect the overall learning experience. Cengage Learning reserves the right to remove additional content at any time if subsequent rights restrictions require it.
+
+--- PAGE 9 ---
+4  |  Development of Beam Equations190
+where kk LE I9 5 /( )3  is used to simplify the notation. We now apply the boundary conditions
+ f55 5500 0011 24vv v  (4.3.20)
+We delete the first three equations and the seventh equation [corresponding to the boundary 
+conditions given by Eq. (4.3.20)] of Eqs. (4.3.19). The remaining three equations are
+ 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+P EI
+L
+LL L
+Lk L
+LL L
+v
+0
+0
+86 2
+61 26
+26 4
+3
+22
+22
+2
+3
+3
+f
+f
+25
+2
+21 2
+2
+9  (4.3.21)
+Solving Eqs. (4.3.21) simultaneously for the displacement at node 3 and the rotations at 
+nodes 2 and 3, we obtain
+ 
+
+
+
+
+
+
+
+
+
+
+
+
+v PL
+EI k
+PL
+EI k
+PL
+EI k
+71
+12 7
+31
+12 7
+91
+12 7
+3
+3
+2
+2
+3
+2
+f
+f
+52 1 52 1
+52 1
+9
+9
+9
+ (4.3.22)
+The influence of the spring stiffness on the displacements is easily seen in Eq. (4.3.22). 
+Solving for the numerical displacements using P 5 50 kN, L 5 3 m, E 210 GPa5
+( 210 10 kN /m )6253 , I 53 221 0m44 , and k9 5 0.129 in Eq. (4.3.22), we obtain
+ 5 2
+33 1 522
+7(50 kN)(3m )
+(210 10 kN /m )(21 0m )
+1
+12 7(0.129) 0.0174 m3
+3
+62 44v 
+
+
+  (4.3.23)
+Similar substitutions into Eq. (4.3.26) yield
+ 0.00249 rad 0.00747 rad23f f52 52  (4.3.24)
+We now back-substitute the results from Eqs. (4.3.23) and (4.3.24), along with numerical 
+values for P, E, I, L, and k9, into Eq. (4.3.19) to obtain the global nodal forces as
+ 
+FM
+FM
+FM
+y
+y
+y
+⋅
+⋅
+⋅
+52 52
+55
+52 5
+69.9 kN 69.7 kN m
+116.4 kN 0.0 kN m
+50.0 kN 0.0 kN m
+11
+22
+33
+ (4.3.25)
+For the beam-spring structure, an additional global force F y4  is determined at the base of 
+the spring as follows:
+ Fv ky (0.0174)200 3.5 kN43 52 55  (4.3.26)
+This force provides the additional global y force for equilibrium of the structure.
+Copyright 2017 Cengage Learning. All Rights Reserved. May not be copied, scanned, or duplicated, in whole or in part. Due to electronic rights, some third party content may be suppressed from the eBook and/or eChapter(s). 
+Editorial review has deemed that any suppressed content does not materially affect the overall learning experience. Cengage Learning reserves the right to remove additional content at any time if subsequent rights restrictions require it.
+
+--- PAGE 10 ---
+4.3  Examples of Beam Analysis Using the Direct Stiffness Method 191
+A free-body diagram, including the forces and moments from Eqs. (4.3.25) and (4.3.26) 
+acting on the beam, is shown in Figure 4–15.
+ExAMpl E 4.4
+Determine the displacement and rotation under the force and moment located at the center of 
+the beam shown in Figure 4–16. The beam has been discretized into the two elements shown 
+in Figure 4–16. The beam is fixed at each end. A downward force of 10 kN and an applied 
+moment of 20 kN-m act at the center of the beam. Let E 5 210 GPa and I 53 241 0m 44  
+throughout the beam length.
+	■ Figure 4–15 Free-body diagram of beam of Figure 4–14
+	■ Figure 4–16 Fixed-fixed beam subjected to applied force and moment
+3 m3  m
+1 2
+20 kN-m13
+2
+10 kN
+solution:
+Using Eq. (4.1.14) for each beam element with L 5 3 m, we obtain the element stiffness 
+matrices as follows:
+ 
+[]
+12 61 26
+46 2
+12 6
+4
+[]
+12 61 26
+46 2
+12 6
+4Symmetry Symmetry
+1
+3
+11 22
+22
+2
+2
+3
+22 33
+22
+2
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+() ()k EI
+L
+vv
+LL
+LL L
+L
+L
+k EI
+L
+vv
+LL
+LL L
+L
+L
+ff ff
+5
+2
+2
+2
+5
+2
+2
+2
+ 
+(4.3.27)
+The boundary conditions are given by
+ ff55 55 011 33vv  (4.3.28)
+Copyright 2017 Cengage Learning. All Rights Reserved. May not be copied, scanned, or duplicated, in whole or in part. Due to electronic rights, some third party content may be suppressed from the eBook and/or eChapter(s). 
+Editorial review has deemed that any suppressed content does not materially affect the overall learning experience. Cengage Learning reserves the right to remove additional content at any time if subsequent rights restrictions require it.
+
+--- PAGE 11 ---
+4  |  Development of Beam Equations192
+The global forces are F y 52 10,0002  N and M 5 20,0002  N-m.
+Applying the global forces and boundary conditions, Eq. (4.3.28), and assembling the 
+global stiffness matrix using the direct stiffness method and Eqs. (4.3.27), we obtain the 
+global equations as:
+ f
+2 5 33 210, 000
+20, 000
+(210 10 )(41 0)
+3
+24 0
+08 (3 )
+94
+3 2
+2
+2
+v
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ (4.3.29)
+Solving Eq. (4.3.29) for the displacement and rotation, we obtain
+ v 1.339 10 ma nd 8.928 10 rad2 4 2 5f52 35 322  (4.3.30)
+Using the local equations for each element, we obtain the local nodal forces and 
+moments for element one as follows:
+ (210 10 )(41 0)
+3
+12 6(3) 12 6(3)
+6(3) 4(3) 6(3) 2(3)
+12 6(3) 12 6(3)
+6(3) 2(3) 6(3) 4(3)
+0
+0
+1.3339 10
+8.928 10
+1
+(1)
+1
+(1)
+2
+(1)
+2
+(1)
+94
+3
+22
+22
+4
+5
+5 33
+2
+2
+22 2
+2
+23
+3
+2
+2
+2
+f
+m
+f
+m
+y
+y
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ 
+(4.3.31)
+Simplifying Eq. (4.3.31), we have
+f mf myy 10, 000 N, 12,500 N-m, 10, 000 N, 17,500 N-m1
+(1)
+1
+(1)
+2
+(1)
+2
+(1)55 52 5  (4.3.32)
+Similarly, for element two the local nodal forces and moments are
+ 55 55 20, 2500 N-m, 0, 2500 N-m2
+(2)
+2
+(2)
+3
+(2)
+3
+(2)fm fmyy  (4.3.33)
+Using the results from Eqs. (4.3.32) and (4.3.33), we show the local forces and moments 
+acting on each element in Figure 4–17 as follows.
+Using the results from Eqs. (4.3.32) and (4.3.33), or Figure 4–17, we obtain the shear 
+force and bending moment diagrams for each element as shown in Figure 4–18.
+	■ Figure 4–17 Nodal forces and moments acting on each element of Figure 4–16
+10,000 N 10,000 N
+17,500 N-m12,500 N-m
+00
+2500 N-m2500 N-m
+Copyright 2017 Cengage Learning. All Rights Reserved. May not be copied, scanned, or duplicated, in whole or in part. Due to electronic rights, some third party content may be suppressed from the eBook and/or eChapter(s). 
+Editorial review has deemed that any suppressed content does not materially affect the overall learning experience. Cengage Learning reserves the right to remove additional content at any time if subsequent rights restrictions require it.
+
+--- PAGE 12 ---
+4.3  Examples of Beam Analysis Using the Direct Stiffness Method 193
+ExAMpl E 4.5
+To illustrate the effects of shear deformation along with the usual bending deformation, we 
+now solve the simple beam shown in Figure 4–19. We will use the beam stiffness matrix 
+given by Eq. (4.1.15o) that includes both the bending and shear deformation contributions 
+for deformation in the x – y plane. The beam is simply supported with a concentrated load 
+of 10,000 N applied at mid-span. We let material properties be E 5 207 GPa and G 5 80 
+GPa. The beam width and height are b 5 25 mm and h 5 50 mm, respectively.
+	■ Figure 4–18 Shear force (a) and bending moment (b) diagrams for each element of 
+Figure 4–17
++
+17,500
+−12,500 −2500
+10,000
+−
+−
+M, N-m M, N-m
+V, N V, N
+1 2
+0
++
+(a)
+(b)
+	■ Figure 4–19 Simple beam subjected to concentrated load at center of span
+P = 10,000 N
+200 mm
+400 mm
+h
+b
+sOLUti ON:
+We will use symmetry to simplify the solution. Therefore, only one half of the beam will be 
+considered with the slope at the center forced to be zero. Also, one-half of the  concentrated 
+load is then used. The model with symmetry enforced is shown in Figure 4–20.
+The finite element model will consist of only one beam element. Using Eq. (4.1.15o) 
+for the Timoshenko beam element stiffness matrix, we obtain the global equations as
+ 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+EI
+L
+LL
+LL LL
+LL
+LL LL
+v
+v
+F
+P
+y
+(1 )
+12 61 26
+6( 4) 6( 2)
+12 61 26
+6( 2) 6( 4)
+0
+0
+0
+/2
+0
+3
+22
+22
+1
+1
+1
+2
+1
+w
+ww
+ww
+f
+f
+1
+2
+12 2
+22 2
+22 1
+5
+5
+5
+2
+ (4.3.34)
+Copyright 2017 Cengage Learning. All Rights Reserved. May not be copied, scanned, or duplicated, in whole or in part. Due to electronic rights, some third party content may be suppressed from the eBook and/or eChapter(s). 
+Editorial review has deemed that any suppressed content does not materially affect the overall learning experience. Cengage Learning reserves the right to remove additional content at any time if subsequent rights restrictions require it.
+
+--- PAGE 13 ---
+4  |  Development of Beam Equations194
+Note that the boundary conditions given by v 5 01  and f 5 02  have been included in 
+Eq. (4.3.34).
+Using the second and third equations of Eq. (4.3.34) whose rows are associated with 
+the two unknowns, f1 and v2, we obtain
+ w f5 21 5 2(4 )
+24 and 4
+2
+3
+1
+2
+v PL
+EI
+PL
+EI  (4.3.35)
+As the beam is rectangular in cross section, the moment of inertia is
+ 5 /123Ib h  
+Substituting the numerical values for b and h, we obtain I as
+ 53 20.26 10 m 64I  
+The shear correction factor is given by
+ w 5 12
+2
+EI
+kA GLs
+ 
+and ks for a rectangular cross section is given by ks 5 5/6.
+Substituting numerical values for E, I, G, L, and ks, we obtain
+ 12 207 10 0.26 10
+5/6 0.025 0.05 80 10 0.2 0.1938
+96
+92w 5 33 33
+33 33 3 5
+2
+ 
+Substituting for P 5 10,000  N, L 5 0.2 m, and w 5 0.1938 into Eq. (4.3.35), we obtain the 
+displacement at the mid-span as
+ v 2.597 10 m2 452 3 2  (4.3.36)
+If we let l 5 the whole length of the beam, then lL5 2  and we can substitute Ll5 /2  into 
+Eq. (4.3.35) to obtain the displacement in terms of the whole length of the beam as
+ v Pl
+EI
+(4 )
+192
+2
+3 w5 21  (4.3.37)
+For long slender beams with l about 10 or more times the beam depth, h, the transverse shear 
+correction term w is small and can be neglected. Therefore, Eq. (4.3.37) becomes
+ v Pl
+EI48
+2
+3
+5 2  (4.3.38)
+	■ Figure 4–20 Beam with symmetry enforced
+2
+200 mm
+11
+P
+2
+Copyright 2017 Cengage Learning. All Rights Reserved. May not be copied, scanned, or duplicated, in whole or in part. Due to electronic rights, some third party content may be suppressed from the eBook and/or eChapter(s). 
+Editorial review has deemed that any suppressed content does not materially affect the overall learning experience. Cengage Learning reserves the right to remove additional content at any time if subsequent rights restrictions require it.

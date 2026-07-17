@@ -1,0 +1,29 @@
+{
+  "nodes": [
+    {"id": 1, "x": 0.0, "y": 0.0},
+    {"id": 2, "x": 2.0, "y": 0.0}
+  ],
+  "elements": [
+    {
+      "id": 1,
+      "node_i": 1,
+      "node_j": 2,
+      "E": 200.0,
+      "A": 0.02,
+      "I": 0.001
+    }
+  ],
+  "supports": [
+    {"node_id": 1, "u": true, "v": true, "phi": true}
+  ],
+  "nodal_loads": [
+    {"node_id": 2, "fx": 4.0, "fy": -1.0}
+  ],
+  "distributed_loads": [
+    {"element_id": 1, "qy_i": -0.6, "qy_j": -0.6}
+  ],
+  "number_of_points": 101,
+  "deformation_scale": 1.0,
+  "include_plots": true,
+  "plot_dpi": 140
+}

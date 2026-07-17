@@ -1,0 +1,377 @@
+--- PAGE 1 ---
+4  |  Development of Beam Equations180
+where again the minus signs in the second and third of Eqs. (4.1.15l) are the result of opposite 
+nodal and beam theory positive moment conventions at node l and opposite nodal and beam 
+theory positive shear force conventions at node 2, as seen by comparing Figures 4–1 and 4–2. 
+In matrix form Eqs. (4.1.15l) become
+ 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+f
+m
+f
+m
+EI
+LL g
+LL
+LL gL Lg
+LL
+LL gL Lg
+v
+v
+y
+y (1 2)
+12 61 26
+6( 41 2) 6( 21 2)
+12 61 26
+6( 21 2) 6( 41 2)
+1
+1
+2
+2
+2
+22
+22
+1
+1
+2
+2
+f
+f
+5 1
+2
+12 2
+22 2
+22 1
+ (4.1.15m)
+where the stiffness matrix, including both bending and shear deformation, is then given by
+ 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+k EI
+LL g
+LL
+LL gL Lg
+LL
+LL gL Lg
+[] (1 2)
+12 61 26
+6( 41 2) 6( 21 2)
+12 61 26
+6( 21 2) 6( 41 2)
+2
+22
+22
+5 1
+2
+12 2
+22
+22 1
+ (4.1.15n)
+In Eq. (4.1.15n) remember that g represents the transverse shear term, and if we set g 5 0, we 
+obtain Eq. (4.1.14) for the beam stiffness matrix, neglecting transverse shear deformation. To 
+more easily see the effect of the shear correction factor, we define the nondimensional shear 
+correction term as EI kA GL gLsw 5512 /( )1 2/22  and rewrite the stiffness matrix as
+ 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+k EI
+L
+LL
+LL LL
+LL
+LL LL
+[] (1 )
+12 61 26
+6( 4) 6( 2)
+12 61 26
+6( 2) 6( 4)
+3
+22
+22
+w
+ww
+ww
+5 1
+2
+12 2
+22 2
+22 1
+ (4.1.15o)
+Most commercial computer programs, such as [11], will include the shear deformation by 
+having you input the shear area, Ak Ass 5 .
+ 4.2  Example of assemblage of Beam stiffness Matrices
+Step 5  Assemble the Element Equations to Obtain the Global  
+Equations and Introduce Boundary Conditions
+Consider the beam in Figure 4–7 as an example to illustrate the procedure for assemblage of 
+beam element stiffness matrices. Assume EI to be constant throughout the beam. A force of 
+1000 lb and a moment of 1000 lb-ft are applied to the beam at midlength. The left end is a 
+fixed support and the right end is a pin support.
+First, we discretize the beam into two elements with nodes 1–3 as shown. We include a 
+node at midlength because applied force and moment exist at midlength and, at this time, loads 
+are assumed to be applied only at nodes. (Another procedure for handling loads applied on 
+elements will be discussed in Section 4.4.)
+Copyright 2017 Cengage Learning. All Rights Reserved. May not be copied, scanned, or duplicated, in whole or in part. Due to electronic rights, some third party content may be suppressed from the eBook and/or eChapter(s). 
+Editorial review has deemed that any suppressed content does not materially affect the overall learning experience. Cengage Learning reserves the right to remove additional content at any time if subsequent rights restrictions require it.
+
+--- PAGE 2 ---
+4.2  Example of Assemblage of Beam Stiffness Matrices 181
+Using Eq. (4.1.14), we find that the global stiffness matrices for the two elements are now 
+given by
+ 
+[]
+12 61 26
+646 2
+12 61 26
+62 64
+1 1 2 2
+(1)
+3
+22
+22
+v v
+k EI
+L
+LL
+LL LL
+LL
+LL LL
+f f
+5
+2
+2
+22 2
+2
+
+
+
+
+
+
+
+
+
+
+
+
+ (4.2.1)
+and 
+[]
+12 61 26
+64 62
+12 61 26
+62 64
+22 3 3
+(2)
+3
+22
+22
+v v
+k EI
+L
+LL
+LL LL
+LL
+LL LL
+ff
+5
+2
+2
+22 2
+2
+
+
+
+
+
+
+
+
+
+
+
+
+ (4.2.2)
+where the degrees of freedom associated with each beam element are indicated by the usual 
+labels above the columns in each element stiffness matrix.
+The total stiffness matrix can now be assembled for the beam by using the direct stiffness 
+method. When the total (global) stiffness matrix has been assembled, the external global nodal 
+forces are related to the global nodal displacements. Through direct superposition and Eqs. 
+(4.2.1) and (4.2.2), the governing equations for the beam are thus given by
+ 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+F
+M
+F
+M
+F
+M
+EI
+L
+LL
+LL LL
+LL LL
+LL LL LL LL
+LL
+LL LL
+v
+v
+v
+y
+y
+y
+12 61 26 00
+64 62 00
+12 61 21 26 61 26
+62 66 44 62
+00 12 61 26
+00 62 64
+1
+1
+2
+2
+3
+3
+3
+22
+22 22
+22
+1
+1
+2
+2
+3
+3
+f
+f
+f
+5
+2
+2
+22 12 12
+21 12
+22 2
+2
+ (4.2.3)
+	■ Figure 4–7 Fixed hinged beam subjected to a force and a moment
+Copyright 2017 Cengage Learning. All Rights Reserved. May not be copied, scanned, or duplicated, in whole or in part. Due to electronic rights, some third party content may be suppressed from the eBook and/or eChapter(s). 
+Editorial review has deemed that any suppressed content does not materially affect the overall learning experience. Cengage Learning reserves the right to remove additional content at any time if subsequent rights restrictions require it.
