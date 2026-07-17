@@ -703,7 +703,7 @@ button:focus-visible, input:focus-visible, select:focus-visible {
 .diagram-legend i.positive { background: #ed8588; }
 .diagram-legend i.negative { background: #7477d8; }
 .diagram-legend b { margin-left: 2px; color: #42516b; font-size: 10px; }
-.result-chart { display: block; width: 100%; height: 100%; min-height: 118px; overflow: visible; }
+.result-chart { display: block; width: 100%; height: 100%; min-height: 118px; overflow: visible; cursor: crosshair; touch-action: none; }
 .diagram-area-positive { fill: #ed8588; fill-opacity: 0.78; }
 .diagram-area-negative { fill: #7477d8; fill-opacity: 0.76; }
 .diagram-line-positive { fill: none; stroke: #c95b62; stroke-width: 1.5; vector-effect: non-scaling-stroke; }
@@ -711,6 +711,16 @@ button:focus-visible, input:focus-visible, select:focus-visible {
 .diagram-frame-line { stroke: #303947; stroke-width: 6; stroke-linecap: square; vector-effect: non-scaling-stroke; }
 .diagram-sign { fill: #fff; font-family: Georgia, serif; font-size: 16px; font-weight: 800; paint-order: stroke; stroke: rgba(40, 48, 61, 0.18); stroke-width: 2px; }
 .diagram-element-name { fill: #4e5968; font-size: 9px; font-weight: 760; paint-order: stroke; stroke: #fff; stroke-width: 3px; }
+.diagram-key-value line { stroke: #8793a3; stroke-width: 0.8; stroke-dasharray: 2 2; vector-effect: non-scaling-stroke; }
+.diagram-key-value circle { fill: #fff; stroke: #506071; stroke-width: 1.5; vector-effect: non-scaling-stroke; }
+.diagram-key-value rect { fill: rgba(255, 255, 255, 0.94); stroke: #d7dee8; stroke-width: 0.8; vector-effect: non-scaling-stroke; }
+.diagram-key-value text { fill: #3f4b59; font-size: 8.5px; font-weight: 740; font-variant-numeric: tabular-nums; }
+.diagram-hover-ordinate { stroke: #233f7b; stroke-width: 1; stroke-dasharray: 3 3; vector-effect: non-scaling-stroke; }
+.diagram-hover-base { fill: #fff; stroke: #233f7b; stroke-width: 1.5; vector-effect: non-scaling-stroke; }
+.diagram-hover-point { fill: #fff; stroke: #233f7b; stroke-width: 2.5; vector-effect: non-scaling-stroke; }
+.diagram-hover-card { fill: rgba(35, 48, 72, 0.96); stroke: rgba(255, 255, 255, 0.35); stroke-width: 0.8; vector-effect: non-scaling-stroke; filter: drop-shadow(0 2px 4px rgba(24, 35, 54, 0.2)); }
+.diagram-hover-value { fill: #fff; font-size: 10px; font-weight: 760; font-variant-numeric: tabular-nums; }
+.diagram-hover-station { fill: #cbd5e5; font-size: 8px; font-weight: 620; font-variant-numeric: tabular-nums; }
 .diagram-support { fill: #405aa6; stroke: #405aa6; stroke-width: 2; vector-effect: non-scaling-stroke; }
 .diagram-support line { fill: none; }
 .chart-extremes { display: flex; align-items: center; gap: 22px; padding: 7px 20px; border-top: 1px solid #e6ebf1; background: #fff; color: #3c4755; font-size: 11px; font-weight: 700; }
