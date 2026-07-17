@@ -801,10 +801,11 @@ button:focus-visible, input:focus-visible, select:focus-visible {
   .result-tabs { flex: 1; }
   .result-tabs button { flex: 1; justify-content: center; padding-inline: 5px; }
   .field-results--expanded, .field-results--compact { grid-template-columns: 1fr; }
-  .field-results--expanded .result-chart-wrap { display: none; }
+  /* Keep N/V/M tables visible on small screens; charts remain optional via Expand. */
+  .field-results--expanded .result-chart-wrap { display: block; min-height: 180px; }
   .collapse-results { min-width: 38px; padding: 0 8px; }
   .collapse-results span { display: none; }
-  .field-summary { display: none; }
+  .field-summary { display: block; }
   .cursor-position { display: none; }
 }
 

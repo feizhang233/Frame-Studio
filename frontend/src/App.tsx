@@ -237,13 +237,21 @@ export default function App() {
     setResult(null)
     try {
       const response = await solveFrame(model, controller.signal)
+      if (controller.signal.aborted) return
       setResult(response)
       setAnalysisState('success')
       setActiveResult('displacement')
       void rememberModel(model, 'analyzed')
       showMessage('分析完成，結果已更新', 'success')
     } catch (error) {
-      if (error instanceof DOMException && error.name === 'AbortError') return
+      // Ignore aborts from a superseded run; only the latest controller owns UI state.
+      if (error instanceof DOMException && error.name === 'AbortError') {
+        if (analysisAbortRef.current === controller) {
+          setAnalysisState('idle')
+        }
+        return
+      }
+      if (analysisAbortRef.current !== controller) return
       const message = error instanceof FrameApiError || error instanceof Error
         ? error.message
         : '分析失敗，請檢查模型。'

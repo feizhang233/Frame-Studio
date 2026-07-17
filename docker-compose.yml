@@ -1,0 +1,19 @@
+services:
+  frame2d:
+    build: .
+    container_name: frame2d
+    restart: unless-stopped
+    environment:
+      MPLBACKEND: Agg
+      FRAME2D_DB_PATH: /data/frame2d.sqlite3
+      MPLCONFIGDIR: /tmp/matplotlib
+    volumes:
+      - ./data:/data
+    ports:
+      - "127.0.0.1:8002:8002"
+    networks:
+      - nextcloud_nextcloud
+
+networks:
+  nextcloud_nextcloud:
+    external: true

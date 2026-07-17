@@ -143,6 +143,7 @@ export const createDefaultSections = (): SectionDefinition[] => [
 export const DEFAULT_OPTIONS: AnalysisOptions = {
   number_of_points: 101,
   deformation_scale: 1,
+  // Keep false by default for faster API responses; N/V/M still render from field data.
   include_plots: false,
   plot_dpi: 140,
 }

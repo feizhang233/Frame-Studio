@@ -2,11 +2,14 @@
 
 from __future__ import annotations
 
+import os
+from pathlib import Path
 from typing import Annotated, Any, Literal
 
 import numpy as np
 from fastapi import FastAPI, HTTPException, Request, Response, status
-from fastapi.responses import JSONResponse
+from fastapi.responses import FileResponse, JSONResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, ConfigDict, Field
 
 from .models import DistributedLoad, FrameElement, NodalLoad, Node, Support
@@ -17,6 +20,20 @@ from .plotting import (
     render_shear_force_plot,
 )
 from .solver import FrameAnalysisResult, solve_frame
+
+
+def _frontend_dist() -> Path | None:
+    """Locate a production frontend build if one is available."""
+    configured = os.environ.get("FRAME2D_FRONTEND_DIST", "").strip()
+    candidates = []
+    if configured:
+        candidates.append(Path(configured))
+    # src/frame2d/api.py -> project root / frontend / dist
+    candidates.append(Path(__file__).resolve().parents[2] / "frontend" / "dist")
+    for path in candidates:
+        if path.is_dir() and (path / "index.html").is_file():
+            return path
+    return None
 
 PositiveInt = Annotated[int, Field(strict=True, gt=0)]
 FiniteFloat = Annotated[float, Field(allow_inf_nan=False)]
@@ -303,8 +320,11 @@ def _response_dict(
     }
 
 
-@app.get("/", include_in_schema=False)
-def root() -> dict[str, str]:
+@app.get("/", include_in_schema=False, response_model=None)
+def root() -> FileResponse | dict[str, str]:
+    dist = _frontend_dist()
+    if dist is not None:
+        return FileResponse(dist / "index.html")
     return {
         "name": "frame2d API",
         "health": "/health",
@@ -403,8 +423,33 @@ def bending_moment_plot(payload: SolveRequest) -> Response:
     )
 
 
+# Serve the built React workbench when frontend/dist is present.
+_FRONTEND_DIST = _frontend_dist()
+if _FRONTEND_DIST is not None:
+    assets_dir = _FRONTEND_DIST / "assets"
+    if assets_dir.is_dir():
+        app.mount("/assets", StaticFiles(directory=assets_dir), name="frontend-assets")
+
+    @app.get("/{full_path:path}", include_in_schema=False, response_model=None)
+    def spa_fallback(full_path: str) -> FileResponse | JSONResponse:
+        """Serve SPA assets or index.html; keep API 404s as JSON."""
+        if full_path.startswith("api/") or full_path in {
+            "docs",
+            "redoc",
+            "openapi.json",
+            "health",
+        }:
+            return JSONResponse({"detail": "Not Found"}, status_code=404)
+        candidate = _FRONTEND_DIST / full_path
+        if candidate.is_file():
+            return FileResponse(candidate)
+        return FileResponse(_FRONTEND_DIST / "index.html")
+
+
 def run() -> None:
     """Run the production-style Uvicorn server installed by this package."""
     import uvicorn
 
-    uvicorn.run("frame2d.api:app", host="0.0.0.0", port=8000)
+    host = os.environ.get("FRAME2D_HOST", "0.0.0.0")
+    port = int(os.environ.get("FRAME2D_API_PORT", "8000"))
+    uvicorn.run("frame2d.api:app", host=host, port=port)
