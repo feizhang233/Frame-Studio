@@ -1,5 +1,7 @@
-import pytest
 from concurrent.futures import ThreadPoolExecutor
+from pathlib import Path
+
+import pytest
 from fastapi.testclient import TestClient
 
 from frame2d.api import app
@@ -14,6 +16,19 @@ def client() -> TestClient:
 @pytest.fixture(autouse=True)
 def isolated_database(tmp_path, monkeypatch) -> None:
     monkeypatch.setenv("FRAME2D_DB_PATH", str(tmp_path / "frame2d-test.sqlite3"))
+
+
+def test_default_database_path_is_relative_to_program_directory(
+    tmp_path, monkeypatch
+) -> None:
+    monkeypatch.delenv("FRAME2D_DB_PATH", raising=False)
+    monkeypatch.chdir(tmp_path)
+
+    store = ModelHistoryStore()
+
+    assert store.database_path == Path("data/frame2d.sqlite3")
+    store.list()
+    assert (tmp_path / "data" / "frame2d.sqlite3").is_file()
 
 
 @pytest.fixture

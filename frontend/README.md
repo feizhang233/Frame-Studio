@@ -34,4 +34,4 @@ Save 產生的 JSON 與根目錄 README 中的 `/api/v1/solve` request 格式相
 - 材料與截面是前端資源庫，可指派給單一構件或全部構件；送出分析前才解析成後端所需的 `E/A/I`，不把資源庫邏輯混入 Python 求解器。
 - 新構件預設不帶材料與截面；分析或儲存時若缺少必要指派，介面會導向相應資源庫。
 - Results 有 compact 與 expanded 兩種高度；結構式 `N/V/M` 填色圖只在 expanded 模式顯示。
-- 模型歷史由後端保存到專案的 SQLite 資料庫 `data/frame2d.sqlite3`。舊版瀏覽器 `localStorage` 歷史會在首次載入時自動遷移。
+- 模型歷史由後端保存到程式目錄下的 SQLite 資料庫 `data/frame2d.sqlite3`；此路徑會隨整個程式資料夾一起移動。舊版瀏覽器 `localStorage` 歷史會在首次載入時自動遷移。

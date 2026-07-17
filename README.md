@@ -1,24 +1,59 @@
-# frame2d
+<div align="center">
 
-`frame2d` 是一个二维刚架线性静力有限元求解器，现已封装为 FastAPI 后端。接口接收节点、梁柱单元、约束、节点荷载和单元分布荷载，返回节点位移、节点反力、单元端力及沿单元采样的 `N/V/M` 数据，并生成剪力 `V`、弯矩 `M` 的 PNG 折线图。
+# Frame Studio / frame2d
 
-## 功能
+**在浏览器中建立、分析并检查二维刚架模型。**
 
-- 二维刚架单元，每节点自由度顺序为 `[u, v, phi]`
-- 节点集中力、节点力矩
-- 支座局部轴可按任意角度倾斜，支持斜向滚动支座
-- 局部坐标系下线性变化的轴向/横向分布荷载
-- 零位移及非零指定节点位移
-- 全局刚度组装、边界条件处理、位移求解和支座反力
-- 单元局部位移、端力以及 `N/V/M` 场恢复
-- 全局残差、刚度对称性和单元平衡检查
-- `V`、`M` 折线图，可作为 Base64 data URI 返回，也可直接返回 PNG
-- 自动生成 Swagger UI 和 OpenAPI 文档
-- 使用 SQLite 持久化保存最近的模型历史
+React 工作台 · FastAPI 服务 · Python 有限元核心
 
-## 安装
+[简体中文](README.md) · [繁體中文](README.zh-TW.md) · [English](README.en.md)
 
-需要 Python 3.11 或更高版本。
+</div>
+
+![Frame Studio 前端工作台](docs/images/frame-studio-workbench.jpg)
+
+`frame2d` 是一个二维刚架线性静力有限元求解器。项目同时提供可视化 React 工作台、FastAPI HTTP API 和可直接导入的 Python 库，可从建模一路完成位移、反力、轴力、剪力与弯矩分析。
+
+## 主要功能
+
+- 在 SVG 画布中创建、选择、拖动节点与构件
+- 管理材料、截面、支座、节点荷载与线性分布荷载
+- 每个节点采用 `[u, v, φ]` 三个自由度
+- 支持任意角度的支座局部轴与非零指定节点位移
+- 求解节点位移、节点反力及单元局部端力
+- 沿单元恢复位移、变形坐标及 `N / V / M` 场
+- 在前端查看结构式结果，并输出剪力图、弯矩图 PNG
+- 校验全局残差、刚度对称性与单元平衡
+- 使用 SQLite 保存最近模型，支持 JSON 导入与导出
+- 自动提供 Swagger UI 与 OpenAPI 文档
+
+## 系统架构
+
+```mermaid
+flowchart LR
+    UI["React + TypeScript<br/>建模与结果工作台"]
+    API["FastAPI<br/>校验与 HTTP 接口"]
+    FEM["frame2d 核心<br/>组装 · 求解 · 恢复"]
+    OUT["JSON 结果<br/>N / V / M · PNG"]
+    DB[("SQLite<br/>模型历史")]
+
+    UI -->|"模型请求"| API
+    API --> FEM
+    FEM --> OUT
+    OUT --> API
+    API -->|"分析结果"| UI
+    API <--> DB
+```
+
+## 快速开始
+
+### 环境要求
+
+- Python `3.11+`
+- Node.js `^20.19.0` 或 `>=22.12.0`
+- npm
+
+### 安装
 
 ```bash
 python3 -m venv .venv
@@ -28,75 +63,80 @@ python -m pip install -e ".[test]"
 npm --prefix frontend install
 ```
 
-## 同时启动前端与后端
+Windows PowerShell 请将激活命令替换为：
 
-在项目根目录执行：
+```powershell
+.venv\Scripts\Activate.ps1
+```
+
+### 同时启动前端与后端
 
 ```bash
 npm run dev
 ```
 
-这个命令会同时启动 FastAPI 和 Vite；在终端按 `Ctrl+C` 会同时关闭两项服务。
+| 服务 | 地址 |
+| --- | --- |
+| Frame Studio | <http://127.0.0.1:5173> |
+| Swagger UI | <http://127.0.0.1:8000/docs> |
+| 健康检查 | <http://127.0.0.1:8000/health> |
 
-- 前端：<http://127.0.0.1:5173>
-- Swagger UI：<http://127.0.0.1:8000/docs>
-- 健康检查：<http://127.0.0.1:8000/health>
-
-模型历史默认保存在 `data/frame2d.sqlite3`。可通过环境变量覆盖路径：
-
-```bash
-FRAME2D_DB_PATH=/path/to/frame2d.sqlite3 npm run dev
-```
-
-如需使用其他端口：
-
-```bash
-FRAME2D_API_PORT=8100 FRAME2D_FRONTEND_PORT=5174 npm run dev
-```
-
-前端始终支持热更新。如需同时监听 Python 后端代码变化，可执行：
+在终端按 `Ctrl+C` 会同时停止两个服务。前端默认启用热更新；如需同时监听 Python 代码变化：
 
 ```bash
 FRAME2D_API_RELOAD=1 npm run dev
 ```
 
-## 单独启动后端
+常用环境变量：
 
-开发模式：
+| 变量 | 默认值 | 用途 |
+| --- | --- | --- |
+| `FRAME2D_HOST` | `127.0.0.1` | 前后端监听地址 |
+| `FRAME2D_API_PORT` | `8000` | API 端口 |
+| `FRAME2D_FRONTEND_PORT` | `5173` | 前端端口 |
+| `FRAME2D_DB_PATH` | `data/frame2d.sqlite3` | 相对于程序目录的 SQLite 文件位置；移动程序文件夹时会一起移动 |
+| `FRAME2D_API_RELOAD` | `0` | 设为 `1` 启用后端热更新 |
+
+### 单独启动服务
+
+仅启动后端：
 
 ```bash
 uvicorn frame2d.api:app --host 0.0.0.0 --port 8000 --reload
 ```
 
-也可以使用安装后的命令：
+安装项目后也可执行 `frame2d-api`。仅启动前端：
 
 ```bash
-frame2d-api
+npm --prefix frontend run dev
 ```
 
-单独启动后可访问：
+部署或前后端分离运行时，可通过 `VITE_API_BASE_URL` 指定浏览器访问的 API origin；开发代理目标可通过 `FRAME2D_API_URL` 设置。
 
-- Swagger UI：<http://127.0.0.1:8000/docs>
-- OpenAPI JSON：<http://127.0.0.1:8000/openapi.json>
-- 健康检查：<http://127.0.0.1:8000/health>
+## 使用流程
+
+1. 使用左侧工具栏建立节点、材料、截面与构件。
+2. 添加支座、节点荷载或单元分布荷载。
+3. 点击 **Run Analysis**。
+4. 在结果区域切换位移、反力、轴力、剪力与弯矩。
+5. 使用 **Save / Open** 导出或重新载入 JSON 模型。
+
+新构件默认不带材料与截面。分析或保存前如有遗漏，工作台会定位到对应构件并引导完成指派。
 
 ## API
 
-| 方法 | 路径 | 返回内容 |
+| 方法 | 路径 | 说明 |
 | --- | --- | --- |
 | `GET` | `/health` | 服务健康状态 |
-| `POST` | `/api/v1/solve` | 数值结果；可选内嵌 V、M PNG |
-| `POST` | `/api/v1/plots/shear-force` | 剪力 V 折线图，`image/png` |
-| `POST` | `/api/v1/plots/bending-moment` | 弯矩 M 折线图，`image/png` |
-| `GET` | `/api/v1/models` | 读取 SQLite 中的最近模型 |
-| `POST` | `/api/v1/models` | 保存模型到 SQLite |
-| `DELETE` | `/api/v1/models/{id}` | 删除历史模型 |
+| `POST` | `/api/v1/solve` | 求解模型；可选内嵌 V、M PNG |
+| `POST` | `/api/v1/plots/shear-force` | 返回剪力图 `image/png` |
+| `POST` | `/api/v1/plots/bending-moment` | 返回弯矩图 `image/png` |
+| `GET` | `/api/v1/models` | 读取最近模型 |
+| `POST` | `/api/v1/models` | 保存模型 |
+| `DELETE` | `/api/v1/models/{id}` | 删除一个历史模型 |
+| `DELETE` | `/api/v1/models` | 清空历史模型 |
 
-### 运行示例
-
-仓库提供了悬臂梁示例请求 [examples/cantilever_request.json](examples/cantilever_request.json)。
-
-求解并保存 JSON：
+仓库提供了[悬臂梁请求示例](examples/cantilever_request.json)：
 
 ```bash
 curl -X POST http://127.0.0.1:8000/api/v1/solve \
@@ -105,23 +145,7 @@ curl -X POST http://127.0.0.1:8000/api/v1/solve \
   --output result.json
 ```
 
-直接生成剪力图和弯矩图：
-
-```bash
-curl -X POST http://127.0.0.1:8000/api/v1/plots/shear-force \
-  -H "Content-Type: application/json" \
-  --data-binary @examples/cantilever_request.json \
-  --output shear_force_v.png
-
-curl -X POST http://127.0.0.1:8000/api/v1/plots/bending-moment \
-  -H "Content-Type: application/json" \
-  --data-binary @examples/cantilever_request.json \
-  --output bending_moment_m.png
-```
-
-### 请求字段
-
-顶层请求格式：
+请求的核心结构如下：
 
 ```json
 {
@@ -137,51 +161,18 @@ curl -X POST http://127.0.0.1:8000/api/v1/plots/bending-moment \
 }
 ```
 
-- `nodes`：节点坐标；节点编号必须唯一且从 `1` 连续编号。
-- `elements`：`node_i` 到 `node_j` 定义单元局部 `+x` 方向；`E/A/I` 必须为正数。
-- `supports`：`u/v/phi` 为支座局部轴约束标志；`angle` 为局部 `+u` 轴相对全局 `+X` 的逆时针角度（度，默认 `0`），对应的 `*_value` 可指定局部非零位移。
-- `nodal_loads`：全局坐标系中的 `fx/fy/mz`。
-- `distributed_loads`：局部坐标系中的 `qx_i/qy_i/qx_j/qy_j`；同一单元的多条荷载会叠加。
-- `number_of_points`：每个单元的场结果采样点数，范围 `2..2001`。
-- `deformation_scale`：变形后坐标的显示比例，只影响 `x_deformed/y_deformed`。
-- `include_plots`：是否在 `/solve` JSON 中嵌入两张 PNG；不需要图像时建议设为 `false`。
-- `plot_dpi`：PNG 分辨率，范围 `72..300`。
+主要结果包括：
 
-### 求解结果
+- `nodal_displacements`：每个节点的 `u / v / phi`
+- `nodal_reactions`：按节点整理的全局 `fx / fy / mz`
+- `elements[].local_end_forces`：`[fx_i, fy_i, m_i, fx_j, fy_j, m_j]`
+- `elements[].fields`：沿单元采样的位移、变形坐标和 `N / V / M`
+- `validation`：刚度对称性与自由方向残差检查
+- `plots`：可直接赋给 `<img src>` 的 Base64 PNG data URI
 
-`/api/v1/solve` 的主要结果包括：
-
-- `nodal_displacements`：每节点的 `u/v/phi`。
-- `nodal_reactions`：完整全局残差向量按节点整理为 `fx/fy/mz`；倾斜支座处的全局 X/Y 反力可同时非零。
-- `free_dofs`、`restrained_dofs`：从零开始的自由度位置；倾斜支座节点的平移位置代表支座局部 `u'/v'` 方向。
-- `elements[].local_end_forces`：顺序为 `[fx_i, fy_i, m_i, fx_j, fy_j, m_j]`。
-- `elements[].fields`：沿单元局部坐标采样的位移、变形坐标、轴力 `N`、剪力 `V` 和弯矩 `M`。
-- `validation`：全局刚度对称性和支座局部自由方向残差校验。
-- `plots`：`include_plots=true` 时包含 `shear_force_v`、`bending_moment_m`；其中 `data_uri` 可直接赋给浏览器 `<img src="...">`。
-
-无效引用、重复编号、零长度单元、冲突的指定位移或不稳定/奇异模型会返回 HTTP `422`，错误原因位于响应的 `detail` 字段。
-
-## 单位和符号约定
-
-所有输入和输出采用一致的 SI 单位：
-
-- 长度、位移：`m`
-- 转角：`rad`
-- 弹性模量：`Pa = N/m²`
-- 截面面积：`m²`
-- 截面惯性矩：`m⁴`
-- 集中力、轴力、剪力：`N`
-- 力矩、弯矩：`N·m`
-- 分布荷载：`N/m`
-
-节点荷载正方向为全局 `+X/+Y`，正力矩为逆时针。分布荷载正方向沿单元局部 `+x/+y`。轴力 `N` 以受拉为正；剪力和弯矩遵循求解器的单元局部约定：`V(0)=fy_i`、`M(0)=-m_i`、`V(L)=-fy_j`、`M(L)=m_j`。
-
-前端的 Load 工具可先选择 `Moment`，再直接点击 node 施加 `Mz`。Support 工具可输入支座角度；例如 `v=true, angle=30` 表示约束局部法向位移
-`v'=-sin(30°)u+cos(30°)v`，而局部 `u'` 方向保持可滑动。
+重复编号、无效引用、零长度单元、冲突位移或不稳定模型会返回 HTTP `422`，原因位于 `detail` 字段。
 
 ## 作为 Python 库使用
-
-FastAPI 层调用的是公开的统一求解函数，也可以在 Python 中直接使用：
 
 ```python
 from frame2d import FrameElement, NodalLoad, Node, Support, solve_frame
@@ -194,14 +185,43 @@ result = solve_frame(
 )
 
 print(result.nodal_displacements)
-print(result.elements[0].fields.shear_force)
 print(result.elements[0].fields.bending_moment)
 ```
 
-## 测试
+## 单位与符号
+
+所有输入和输出必须采用一致的单位制。项目示例使用 SI：
+
+| 物理量 | 单位 |
+| --- | --- |
+| 长度、位移 | `m` |
+| 转角 | `rad` |
+| 弹性模量 | `Pa` |
+| 截面面积 / 惯性矩 | `m²` / `m⁴` |
+| 力、轴力、剪力 | `N` |
+| 力矩、弯矩 | `N·m` |
+| 分布荷载 | `N/m` |
+
+节点荷载正方向为全局 `+X / +Y`，正力矩为逆时针；分布荷载沿单元局部 `+x / +y`。轴力 `N` 以受拉为正。更完整的推导见[有限元数学依据](Math%20Logic/2D_Frame_%E6%9C%89%E9%99%90%E5%85%83%E7%B4%A0%E6%95%B8%E5%AD%B8%E4%BE%9D%E6%93%9A.md)。
+
+## 项目结构
+
+```text
+frontend/          React + TypeScript + Vite 工作台
+src/frame2d/       有限元核心、FastAPI 与绘图
+tests/             数值、API 与绘图测试
+examples/          JSON 与 Python 示例
+Math Logic/        数学推导与参考资料
+data/              本地 SQLite 模型历史
+scripts/dev.mjs    前后端统一开发启动器
+```
+
+## 验证与构建
 
 ```bash
 pytest
+npm run typecheck
+npm run build
 ```
 
-测试覆盖底层有限元计算、统一求解流程、V/M PNG 渲染、API 数值响应、直接图像响应以及不稳定模型的错误处理。
+测试覆盖单元刚度、坐标变换、全局组装、荷载处理、边界条件、结果恢复、绘图、历史模型与 API 错误处理。

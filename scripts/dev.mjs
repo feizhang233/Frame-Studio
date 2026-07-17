@@ -21,6 +21,7 @@ const npm = isWindows ? 'npm.cmd' : 'npm'
 const sharedEnvironment = {
   ...process.env,
   FRAME2D_API_URL: `http://${host}:${apiPort}`,
+  FRAME2D_DB_PATH: process.env.FRAME2D_DB_PATH ?? join('data', 'frame2d.sqlite3'),
 }
 const children = []
 let isShuttingDown = false
