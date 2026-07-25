@@ -482,8 +482,7 @@ export default function App() {
     return () => document.removeEventListener('pointerdown', handlePointerDown, true)
   }, [assignmentOverlay])
 
-  // During model setup (no results / not running), keep Results collapsed to a thin strip.
-  const resultsMinimized = !result && !analysisError && analysisState !== 'running' && !resultsOpen && !resultsExpanded
+  const resultsMinimized = analysisState !== 'running' && !resultsOpen && !resultsExpanded
 
   return (
     <Box
@@ -645,20 +644,9 @@ export default function App() {
             isExpanded={resultsExpanded}
             isMinimized={resultsMinimized}
             onTabChange={setActiveResult}
-            onToggleExpanded={() => {
-              setResultsExpanded((expanded) => {
-                const next = !expanded
-                if (next) setResultsOpen(true)
-                return next
-              })
-            }}
-            onOpen={() => {
-              setResultsOpen(true)
-              setResultsExpanded(false)
-            }}
-            onMinimize={() => {
-              setResultsOpen(false)
-              setResultsExpanded(false)
+            onViewChange={(view) => {
+              setResultsOpen(view !== 'hidden')
+              setResultsExpanded(view === 'expanded')
             }}
             onRun={handleRun}
           />

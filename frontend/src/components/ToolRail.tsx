@@ -164,7 +164,7 @@ export function ToolRail({ activeTool, onToolChange }: ToolRailProps) {
           <ToolButton
             key={tool.id}
             tool={tool}
-            active={activeTool === tool.id}
+            active={activeTool === tool.id || (tool.id === 'node' && activeTool === 'insert-node')}
             onClick={() => onToolChange(tool.id)}
           />
         ))}

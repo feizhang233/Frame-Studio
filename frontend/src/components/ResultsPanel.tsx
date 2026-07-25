@@ -7,6 +7,7 @@ import UnfoldMoreIcon from '@mui/icons-material/UnfoldMore'
 import Alert from '@mui/material/Alert'
 import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
+import ButtonGroup from '@mui/material/ButtonGroup'
 import Chip from '@mui/material/Chip'
 import LinearProgress from '@mui/material/LinearProgress'
 import Stack from '@mui/material/Stack'
@@ -44,10 +45,41 @@ interface ResultsPanelProps {
   isMinimized: boolean
   error: string | null
   onTabChange: (tab: ResultTab) => void
-  onToggleExpanded: () => void
-  onOpen: () => void
-  onMinimize: () => void
+  onViewChange: (view: 'expanded' | 'default' | 'hidden') => void
   onRun: () => void
+}
+
+function ResultsViewControl({
+  view,
+  onChange,
+}: {
+  view: 'expanded' | 'default' | 'hidden'
+  onChange: (view: 'expanded' | 'default' | 'hidden') => void
+}) {
+  const options = [
+    { id: 'expanded' as const, label: 'Expand', icon: <UnfoldMoreIcon /> },
+    { id: 'default' as const, label: 'Default', icon: <TableChartIcon /> },
+    { id: 'hidden' as const, label: 'Hide', icon: <UnfoldLessIcon /> },
+  ]
+  return (
+    <ButtonGroup size="small" variant="outlined" color="inherit" aria-label="Results panel size">
+      {options.map((option) => (
+        <Button
+          key={option.id}
+          onClick={() => onChange(option.id)}
+          variant={view === option.id ? 'contained' : 'outlined'}
+          color={view === option.id ? 'primary' : 'inherit'}
+          aria-pressed={view === option.id}
+          startIcon={option.icon}
+          sx={{ minWidth: { xs: 36, sm: 88 }, px: { xs: 0.75, sm: 1.25 } }}
+        >
+          <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}>
+            {option.label}
+          </Box>
+        </Button>
+      ))}
+    </ButtonGroup>
+  )
 }
 
 function DisplacementTable({ result }: { result: SolveResponse }) {
@@ -211,14 +243,12 @@ export function ResultsPanel({
   isMinimized,
   error,
   onTabChange,
-  onToggleExpanded,
-  onOpen,
-  onMinimize,
+  onViewChange,
   onRun,
 }: ResultsPanelProps) {
   const showDiagram = isExpanded && isFieldResultTab(activeTab)
   const tabIndex = Math.max(0, resultTabs.findIndex((tab) => tab.id === activeTab))
-  const canMinimize = !result && !isRunning && !error
+  const view = isMinimized ? 'hidden' : isExpanded ? 'expanded' : 'default'
 
   if (isMinimized) {
     return (
@@ -239,18 +269,7 @@ export function ResultsPanel({
           <TableChartIcon color="primary" fontSize="small" />
           <Typography variant="subtitle2">Results</Typography>
         </Stack>
-        <Button
-          size="small"
-          variant="outlined"
-          color="inherit"
-          onClick={onOpen}
-          startIcon={<UnfoldMoreIcon />}
-          sx={{ flexShrink: 0 }}
-        >
-          <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}>
-            Expand
-          </Box>
-        </Button>
+        <ResultsViewControl view={view} onChange={onViewChange} />
       </Box>
     )
   }
@@ -314,24 +333,7 @@ export function ResultsPanel({
           />
         )}
 
-        <Button
-          size="small"
-          variant="outlined"
-          color="inherit"
-          onClick={() => {
-            if (canMinimize && !isExpanded) {
-              onMinimize()
-              return
-            }
-            onToggleExpanded()
-          }}
-          startIcon={isExpanded || canMinimize ? <UnfoldLessIcon /> : <UnfoldMoreIcon />}
-          sx={{ flexShrink: 0, display: { xs: 'inline-flex', sm: 'inline-flex' } }}
-        >
-          <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}>
-            {isExpanded ? 'Compact' : canMinimize ? 'Hide' : 'Expand'}
-          </Box>
-        </Button>
+        <ResultsViewControl view={view} onChange={onViewChange} />
       </Stack>
 
       {isRunning && <LinearProgress />}

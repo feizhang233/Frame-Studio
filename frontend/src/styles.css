@@ -39,6 +39,7 @@ body {
 }
 
 .canvas-stage--node .model-svg { cursor: crosshair; }
+.canvas-stage--insert-node .model-svg { cursor: crosshair; }
 .canvas-stage--element .model-svg,
 .canvas-stage--support .model-svg,
 .canvas-stage--load .model-svg { cursor: cell; }
@@ -1373,6 +1374,60 @@ body {
 }
 .split-element-button:hover:not(:disabled) { background: #354d93; }
 .split-element-button:disabled { opacity: 0.45; cursor: default; }
+
+.insert-node-entry > strong {
+  display: block;
+  margin-top: 8px;
+  color: #354052;
+  font-size: 12px;
+}
+.insert-node-mode-button,
+.insert-node-cancel-button {
+  width: 100%;
+  height: 38px;
+  margin-top: 10px;
+  border: 1px solid #b9c7e5;
+  border-radius: 9px;
+  background: #eef2ff;
+  color: #334c91;
+  font-size: 11px;
+  font-weight: 720;
+  cursor: pointer;
+}
+.insert-node-mode-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+}
+.insert-node-mode-button:hover:not(:disabled) { background: #dfe6ff; }
+.insert-node-mode-button:disabled { opacity: 0.5; cursor: default; }
+.insert-node-element-list {
+  display: grid;
+  gap: 6px;
+  margin-top: 10px;
+}
+.insert-node-element-list button {
+  min-height: 42px;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 9px;
+  border: 1px solid #d6deea;
+  border-radius: 9px;
+  background: #f8fafc;
+  color: #44536a;
+  text-align: left;
+  cursor: pointer;
+}
+.insert-node-element-list button:hover {
+  border-color: #aebfe8;
+  background: #eef2ff;
+  color: #294384;
+}
+.insert-node-element-list small { color: #7b8797; }
+.insert-node-cancel-button { background: #fff; color: #5c6878; }
 
 .assignment-jump-row { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; padding: 9px; }
 .assignment-jump-row button {

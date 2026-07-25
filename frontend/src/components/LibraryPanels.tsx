@@ -507,6 +507,7 @@ export function ToolSetupPanel({
 
   const definitions = {
     node: { icon: <FiberManualRecordIcon fontSize="small" />, eyebrow: 'CREATE TOOL', title: 'Node', description: 'Enter coordinates below, or click the grid to place a node. Coordinates snap to 0.25 m.' },
+    'insert-node': { icon: <AccountTreeIcon fontSize="small" />, eyebrow: 'NODE TOOL', title: 'Insert node', description: 'Select an existing frame element, then choose the exact split position.' },
     element: { icon: <AccountTreeIcon fontSize="small" />, eyebrow: 'CREATE TOOL', title: 'Element', description: 'Select an i-node and j-node to create a frame element.' },
     support: { icon: <ChangeHistoryIcon fontSize="small" />, eyebrow: 'CREATE TOOL', title: 'Support', description: 'Choose a support type, then click a node to assign it.' },
     load: { icon: <SouthIcon fontSize="small" />, eyebrow: 'CREATE TOOL', title: 'Load', description: 'Click a node for a nodal load or an element for a distributed load.' },
@@ -534,44 +535,82 @@ export function ToolSetupPanel({
       <div className="properties-scroll">
         <div className="tool-setup-intro"><strong>{definition.title} placement</strong><span>{definition.description}</span></div>
         {tool === 'node' && (
-          <section className="tool-default-card">
-            <span>PLACE BY COORDINATES</span>
-            <div className="node-coord-fields">
-              <label>
-                Global X
-                <span>
-                  <input
-                    type="text"
-                    inputMode="decimal"
-                    value={nodeX}
-                    onChange={(event) => setNodeX(event.target.value)}
-                    onKeyDown={(event) => {
-                      if (event.key === 'Enter') placeNodeAtCoordinates()
-                    }}
-                  />
-                  <small>m</small>
-                </span>
-              </label>
-              <label>
-                Global Y
-                <span>
-                  <input
-                    type="text"
-                    inputMode="decimal"
-                    value={nodeY}
-                    onChange={(event) => setNodeY(event.target.value)}
-                    onKeyDown={(event) => {
-                      if (event.key === 'Enter') placeNodeAtCoordinates()
-                    }}
-                  />
-                  <small>m</small>
-                </span>
-              </label>
+          <>
+            <section className="tool-default-card">
+              <span>PLACE BY COORDINATES</span>
+              <div className="node-coord-fields">
+                <label>
+                  Global X
+                  <span>
+                    <input
+                      type="text"
+                      inputMode="decimal"
+                      value={nodeX}
+                      onChange={(event) => setNodeX(event.target.value)}
+                      onKeyDown={(event) => {
+                        if (event.key === 'Enter') placeNodeAtCoordinates()
+                      }}
+                    />
+                    <small>m</small>
+                  </span>
+                </label>
+                <label>
+                  Global Y
+                  <span>
+                    <input
+                      type="text"
+                      inputMode="decimal"
+                      value={nodeY}
+                      onChange={(event) => setNodeY(event.target.value)}
+                      onKeyDown={(event) => {
+                        if (event.key === 'Enter') placeNodeAtCoordinates()
+                      }}
+                    />
+                    <small>m</small>
+                  </span>
+                </label>
+              </div>
+              <button className="place-node-button" type="button" onClick={placeNodeAtCoordinates}>
+                <AddIcon sx={{ fontSize: 16 }} /> Add node
+              </button>
+              <div className="tool-check"><CheckIcon sx={{ fontSize: 16 }} /> Snap 0.25 m · or click the canvas</div>
+            </section>
+            <section className="tool-default-card insert-node-entry">
+              <span>INSERT ON ELEMENT</span>
+              <strong>Split an existing member</strong>
+              <p>Choose an element on the canvas, then place the node by fraction or distance.</p>
+              <button
+                className="insert-node-mode-button"
+                type="button"
+                onClick={() => onToolChange('insert-node')}
+                disabled={model.elements.length === 0}
+              >
+                <AccountTreeIcon sx={{ fontSize: 17 }} />
+                {model.elements.length === 0 ? 'Create an element first' : 'Choose element'}
+              </button>
+            </section>
+          </>
+        )}
+        {tool === 'insert-node' && (
+          <section className="tool-default-card insert-node-picker">
+            <span>SELECT ELEMENT</span>
+            <p>Click a member on the canvas, or choose one below. Its Insert node controls will open at the bottom of the element properties.</p>
+            <div className="insert-node-element-list">
+              {model.elements.map((element) => (
+                <button
+                  key={element.id}
+                  type="button"
+                  onClick={() => onSelectionChange({ type: 'element', id: element.id })}
+                >
+                  <b>E{element.id}</b>
+                  <small>N{element.node_i} → N{element.node_j}</small>
+                  <ChevronRightIcon sx={{ fontSize: 17 }} />
+                </button>
+              ))}
             </div>
-            <button className="place-node-button" type="button" onClick={placeNodeAtCoordinates}>
-              <AddIcon sx={{ fontSize: 16 }} /> Add node
+            <button className="insert-node-cancel-button" type="button" onClick={() => onToolChange('node')}>
+              Back to place node
             </button>
-            <div className="tool-check"><CheckIcon sx={{ fontSize: 16 }} /> Snap 0.25 m · or click the canvas</div>
           </section>
         )}
         {tool === 'element' && <section className="tool-default-card"><span>NEW ELEMENT ASSIGNMENTS</span><label>Material<select value={elementDefaults.materialId ?? ''} onChange={(event) => onElementDefaultsChange({ ...elementDefaults, materialId: event.target.value || null })}><option value="">Unassigned</option>{model.materials.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label><label>Section<select value={elementDefaults.sectionId ?? ''} onChange={(event) => onElementDefaultsChange({ ...elementDefaults, sectionId: event.target.value || null })}><option value="">Unassigned</option>{model.sections.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label><div className="tool-default-actions"><button type="button" onClick={() => onToolChange('material')}>Open Materials</button><button type="button" onClick={() => onToolChange('section')}>Open Sections</button></div></section>}

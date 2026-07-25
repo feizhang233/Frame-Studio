@@ -224,6 +224,17 @@ function ElementPropertiesPanel({
           <label className="property-field"><span>End node</span><select value={element.node_j} onChange={(event) => dispatch({ type: 'updateElement', id: element.id, patch: { node_j: Number(event.target.value) } })}>{model.nodes.map((node) => <option key={node.id} value={node.id}>N{node.id}</option>)}</select></label>
           <div className="read-only-row"><span>Length</span><b>{length > 0 ? `${length.toFixed(3)} m` : '—'}</b></div>
         </PropertySection>
+        <PropertySection title="Assignments">
+          <label className="property-field"><span>Material</span><select value={element.material_id ?? ''} onChange={(event) => { const material = model.materials.find((item) => item.id === event.target.value); dispatch({ type: 'updateElement', id: element.id, patch: { material_id: material?.id ?? null, E: material?.E ?? null } }) }}><option value="">Unassigned</option>{model.materials.map((material) => <option key={material.id} value={material.id}>{material.name}</option>)}</select></label>
+          <label className="property-field"><span>Section</span><select value={element.section_id ?? ''} onChange={(event) => { const section = model.sections.find((item) => item.id === event.target.value); dispatch({ type: 'updateElement', id: element.id, patch: { section_id: section?.id ?? null, A: section?.A ?? null, I: section?.I ?? null } }) }}><option value="">Unassigned</option>{model.sections.map((section) => <option key={section.id} value={section.id}>{section.name}</option>)}</select></label>
+          <div className="assignment-jump-row"><button type="button" onClick={() => onToolChange('material')}>Material library</button><button type="button" onClick={() => onToolChange('section')}>Section library</button></div>
+        </PropertySection>
+        <PropertySection title="Effective properties">
+          <div className={`read-only-row ${properties.E === null ? 'is-missing' : ''}`}><span>Elastic modulus E</span><b>{properties.E === null ? 'Not set' : properties.E.toExponential(3)}</b></div>
+          <div className={`read-only-row ${properties.A === null ? 'is-missing' : ''}`}><span>Cross-section A</span><b>{properties.A === null ? 'Not set' : properties.A.toExponential(3)}</b></div>
+          <div className={`read-only-row ${properties.I === null ? 'is-missing' : ''}`}><span>Moment of inertia I</span><b>{properties.I === null ? 'Not set' : properties.I.toExponential(3)}</b></div>
+        </PropertySection>
+        <DeleteButton label="Delete element" onClick={onDeleted} />
         <PropertySection title="Insert node & split">
           <div className="split-mode-row">
             <button type="button" className={splitMode === 'ratio' ? 'is-active' : ''} onClick={() => setSplitMode('ratio')}>By fraction</button>
@@ -246,17 +257,6 @@ function ElementPropertiesPanel({
           </button>
           <div className="properties-tip"><InfoOutlinedIcon fontSize="small" /><span>Creates a node on the member and replaces it with two elements that keep the same material and section.</span></div>
         </PropertySection>
-        <PropertySection title="Assignments">
-          <label className="property-field"><span>Material</span><select value={element.material_id ?? ''} onChange={(event) => { const material = model.materials.find((item) => item.id === event.target.value); dispatch({ type: 'updateElement', id: element.id, patch: { material_id: material?.id ?? null, E: material?.E ?? null } }) }}><option value="">Unassigned</option>{model.materials.map((material) => <option key={material.id} value={material.id}>{material.name}</option>)}</select></label>
-          <label className="property-field"><span>Section</span><select value={element.section_id ?? ''} onChange={(event) => { const section = model.sections.find((item) => item.id === event.target.value); dispatch({ type: 'updateElement', id: element.id, patch: { section_id: section?.id ?? null, A: section?.A ?? null, I: section?.I ?? null } }) }}><option value="">Unassigned</option>{model.sections.map((section) => <option key={section.id} value={section.id}>{section.name}</option>)}</select></label>
-          <div className="assignment-jump-row"><button type="button" onClick={() => onToolChange('material')}>Material library</button><button type="button" onClick={() => onToolChange('section')}>Section library</button></div>
-        </PropertySection>
-        <PropertySection title="Effective properties">
-          <div className={`read-only-row ${properties.E === null ? 'is-missing' : ''}`}><span>Elastic modulus E</span><b>{properties.E === null ? 'Not set' : properties.E.toExponential(3)}</b></div>
-          <div className={`read-only-row ${properties.A === null ? 'is-missing' : ''}`}><span>Cross-section A</span><b>{properties.A === null ? 'Not set' : properties.A.toExponential(3)}</b></div>
-          <div className={`read-only-row ${properties.I === null ? 'is-missing' : ''}`}><span>Moment of inertia I</span><b>{properties.I === null ? 'Not set' : properties.I.toExponential(3)}</b></div>
-        </PropertySection>
-        <DeleteButton label="Delete element" onClick={onDeleted} />
       </div>
     </aside>
   )
@@ -422,7 +422,10 @@ export function PropertiesPanel({
         onClose={close}
         onToggleCollapsed={onToggleCollapsed}
         onDeleted={() => deleteEntity('element', element.id)}
-        onSplitSelect={(nodeId) => onSelectionChange({ type: 'node', id: nodeId })}
+        onSplitSelect={(nodeId) => {
+          onToolChange('select')
+          onSelectionChange({ type: 'node', id: nodeId })
+        }}
       />
     )
   }

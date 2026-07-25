@@ -1,4 +1,4 @@
-import type { FrameModel, ToolMode } from '../domain/frame'
+import { getElementProperties, type FrameModel, type ToolMode } from '../domain/frame'
 
 /** Modeling workflow stages shown in the progress stepper and onboarding. */
 export interface WorkflowStep {
@@ -99,6 +99,14 @@ export const TOOL_HINTS: Record<ToolMode, ToolHint> = {
       'Edit X/Y later by selecting a node. At least two nodes are needed before drawing an element.',
     ],
   },
+  'insert-node': {
+    title: 'Insert node on element',
+    body: 'Choose an existing element to open its split controls, then place the new node by fraction or distance.',
+    tips: [
+      'The original element is replaced by two connected elements.',
+      'Material, section, and distributed-load data are preserved on both parts.',
+    ],
+  },
   material: {
     title: 'Material library',
     body: 'Materials are reusable resources (E). Assign them to elements before analysis.',
@@ -149,11 +157,32 @@ export const TOOL_HINTS: Record<ToolMode, ToolHint> = {
   },
 }
 
+function hasCompleteMaterialAssignments(model: FrameModel): boolean {
+  return model.materials.length > 0 && model.elements.every((element) => {
+    const { E } = getElementProperties(model, element)
+    return E !== null && Number.isFinite(E) && E > 0
+  })
+}
+
+function hasCompleteSectionAssignments(model: FrameModel): boolean {
+  return model.sections.length > 0 && model.elements.every((element) => {
+    const { A, I } = getElementProperties(model, element)
+    return (
+      A !== null
+      && I !== null
+      && Number.isFinite(A)
+      && Number.isFinite(I)
+      && A > 0
+      && I > 0
+    )
+  })
+}
+
 /** Index of the first incomplete workflow step (0-based). Analyze is always last. */
 export function getActiveWorkflowIndex(model: FrameModel): number {
   if (model.nodes.length === 0) return 0
-  if (model.materials.length === 0) return 1
-  if (model.sections.length === 0) return 2
+  if (!hasCompleteMaterialAssignments(model)) return 1
+  if (!hasCompleteSectionAssignments(model)) return 2
   if (model.elements.length === 0) return 3
   if (model.supports.length === 0) return 4
   const hasLoads =
@@ -173,9 +202,9 @@ export function isWorkflowStepComplete(model: FrameModel, stepIndex: number): bo
     case 0:
       return model.nodes.length > 0
     case 1:
-      return model.materials.length > 0
+      return hasCompleteMaterialAssignments(model)
     case 2:
-      return model.sections.length > 0
+      return hasCompleteSectionAssignments(model)
     case 3:
       return model.elements.length > 0
     case 4:
@@ -187,11 +216,8 @@ export function isWorkflowStepComplete(model: FrameModel, stepIndex: number): bo
         model.nodes.length > 0
         && model.elements.length > 0
         && model.supports.length > 0
-        && model.elements.every((el) => {
-          const hasMat = el.material_id != null || el.E != null
-          const hasSec = el.section_id != null || (el.A != null && el.I != null)
-          return hasMat && hasSec
-        })
+        && hasCompleteMaterialAssignments(model)
+        && hasCompleteSectionAssignments(model)
       )
     default:
       return false

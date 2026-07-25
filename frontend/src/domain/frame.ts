@@ -103,6 +103,7 @@ export interface ModelHistoryEntry {
 export type ToolMode =
   | 'select'
   | 'node'
+  | 'insert-node'
   | 'material'
   | 'section'
   | 'element'

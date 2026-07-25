@@ -169,7 +169,7 @@ export function ModelCanvas({
       onMessage(`已新增節點 N${node.id}`)
       return
     }
-    if (tool === 'select' || event.button === 1 || event.button === 2) {
+    if (tool === 'select' || tool === 'insert-node' || event.button === 1 || event.button === 2) {
       svgRef.current?.setPointerCapture(event.pointerId)
       setDrag({
         mode: 'pan',
@@ -211,6 +211,10 @@ export function ModelCanvas({
 
   const onNodePointerDown = (event: ReactPointerEvent<SVGCircleElement>, nodeId: number) => {
     event.stopPropagation()
+    if (tool === 'insert-node') {
+      onMessage('Choose a frame element to insert a node')
+      return
+    }
     if (tool === 'element') {
       if (elementStart === null) {
         setElementStart(nodeId)
@@ -273,6 +277,9 @@ export function ModelCanvas({
       return
     }
     onSelectionChange({ type: 'element', id: elementId })
+    if (tool === 'insert-node') {
+      onMessage(`E${elementId} selected · set the split position in Properties`)
+    }
   }
 
   const displacedPaths = useMemo(() => {
@@ -301,6 +308,8 @@ export function ModelCanvas({
     ? `Showing ${assignmentOverlay} assignments · click elsewhere to close`
     : tool === 'node'
       ? 'Click canvas or enter coordinates to place a node'
+      : tool === 'insert-node'
+        ? 'Select an element to insert a node and split it'
       : tool === 'element'
         ? elementStart
           ? `Select end node · start N${elementStart}`
@@ -478,30 +487,55 @@ export function ModelCanvas({
               const dy = end.y - start.y
               const length = Math.hypot(dx, dy) || 1
               const normal = { x: dy / length, y: -dx / length }
-              const meanQ = (load.qy_i + load.qy_j) / 2
-              const sign = meanQ >= 0 ? 1 : -1
+              const maxMagnitude = Math.max(Math.abs(load.qy_i), Math.abs(load.qy_j))
+              const isUniform = Math.abs(load.qy_i - load.qy_j) <= Math.max(1, maxMagnitude) * 1e-9
+              const dominantQ = Math.abs(load.qy_i) >= Math.abs(load.qy_j) ? load.qy_i : load.qy_j
+              const labelSign = dominantQ >= 0 ? 1 : -1
               const selected = selection?.type === 'distributedLoad' && selection.id === load.element_id
-              // Draw arrows at both ends to close the distributed-load boundary.
               const arrows = [0, 0.2, 0.4, 0.6, 0.8, 1]
-              const offset = 34
+              const maxOffset = 38
+              const sourcePoint = (ratio: number) => {
+                const q = load.qy_i + (load.qy_j - load.qy_i) * ratio
+                const scale = maxMagnitude > 0 ? q / maxMagnitude : 0
+                return {
+                  x: start.x + dx * ratio - normal.x * maxOffset * scale,
+                  y: start.y + dy * ratio - normal.y * maxOffset * scale,
+                  q,
+                }
+              }
+              const sourceI = sourcePoint(0)
+              const sourceJ = sourcePoint(1)
+              const label = isUniform
+                ? `${formatNumber(load.qy_i / 1000)} kN/m`
+                : `${formatNumber(load.qy_i / 1000)} → ${formatNumber(load.qy_j / 1000)} kN/m`
               return (
                 <g
                   key={load.element_id}
                   role="button"
-                  aria-label={`Distributed load on E${load.element_id}`}
+                  aria-label={`Distributed load on E${load.element_id}: ${label}`}
                   className={`distributed-load ${selected ? 'is-selected' : ''}`}
                   onPointerDown={(event) => {
                     event.stopPropagation()
                     onSelectionChange({ type: 'distributedLoad', id: load.element_id })
                   }}
                 >
-                  <line x1={start.x - sign * normal.x * offset} y1={start.y - sign * normal.y * offset} x2={end.x - sign * normal.x * offset} y2={end.y - sign * normal.y * offset} />
+                  {maxMagnitude > 0 && (
+                    <line x1={sourceI.x} y1={sourceI.y} x2={sourceJ.x} y2={sourceJ.y} />
+                  )}
                   {arrows.map((ratio) => {
                     const x = start.x + dx * ratio
                     const y = start.y + dy * ratio
-                    return <line key={ratio} x1={x - sign * normal.x * offset} y1={y - sign * normal.y * offset} x2={x} y2={y} markerEnd="url(#load-arrow)" />
+                    const source = sourcePoint(ratio)
+                    if (Math.abs(source.q) <= Math.max(1, maxMagnitude) * 1e-12) return null
+                    return <line key={ratio} x1={source.x} y1={source.y} x2={x} y2={y} markerEnd="url(#load-arrow)" />
                   })}
-                  <text x={(start.x + end.x) / 2 - sign * normal.x * 48} y={(start.y + end.y) / 2 - sign * normal.y * 48}>{formatNumber(meanQ / 1000)} kN/m</text>
+                  <text
+                    x={(start.x + end.x) / 2 - labelSign * normal.x * 54}
+                    y={(start.y + end.y) / 2 - labelSign * normal.y * 54}
+                    textAnchor="middle"
+                  >
+                    {label}
+                  </text>
                 </g>
               )
             })}
