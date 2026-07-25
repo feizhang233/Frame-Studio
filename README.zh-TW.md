@@ -89,7 +89,7 @@ npm run dev
 | 支承與荷載 | 固定 / 鉸支 / 滾軸預設；節點力矩與分佈荷載 |
 | 一鍵分析 | 線性靜力求解：位移、反力、`N / V / M` 場 |
 | 結果檢查 | 結構圖 + 表格；校驗殘差與勁度對稱性 |
-| 模型歷史 | SQLite 最近模型 + 範例模型瀏覽器 |
+| 模型歷史 | MySQL 已儲存模型 + 最近分析 + 範例模型瀏覽器 |
 | 介面與腳本 | REST API、Swagger、可 import 的 `frame2d` 函式庫 |
 
 ---
@@ -114,7 +114,7 @@ flowchart LR
     UI["React 工作臺"]
     API["FastAPI"]
     FEM["frame2d 求解核心"]
-    DB[("SQLite 歷史")]
+    DB[("MySQL 模型庫")]
 
     UI --> API
     API --> FEM
@@ -128,6 +128,7 @@ flowchart LR
 ## 常用命令
 
 ```bash
+docker compose up -d mysql   # 首次啟動 MySQL
 npm run dev                 # 開發：前端 + API
 FRAME2D_API_RELOAD=1 npm run dev   # 後端也熱更新
 
@@ -141,7 +142,7 @@ npm run build               # 前端正式建置
 | `FRAME2D_HOST` | `127.0.0.1` | 監聽位址 |
 | `FRAME2D_API_PORT` | `8000` | API 埠 |
 | `FRAME2D_FRONTEND_PORT` | `5173` | 前端埠 |
-| `FRAME2D_DB_PATH` | `data/frame2d.sqlite3` | 模型歷史庫 |
+| `FRAME2D_DATABASE_URL` | `mysql://frame2d:frame2d@127.0.0.1:3307/frame2d` | MySQL 模型庫 |
 | `FRAME2D_API_RELOAD` | `0` | `1` = 後端熱重載 |
 
 單獨啟動服務：
@@ -218,7 +219,7 @@ src/frame2d/       有限元素核心、API、繪圖
 tests/             數值與 API 測試
 examples/          JSON / Python 範例
 Math Logic/        數學推導與參考
-data/              本機 SQLite 模型歷史
+docker-compose.yml MySQL、API 服務與資料庫持久化卷
 scripts/dev.mjs    前後端一鍵啟動
 ```
 

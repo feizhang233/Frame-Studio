@@ -89,7 +89,7 @@ After analysis, expand Results for structural diagrams and per-element envelopes
 | Supports & loads | Fixed / pin / roller presets; nodal forces/moments; distributed loads |
 | One-click solve | Linear static: displacements, reactions, `N / V / M` fields |
 | Result checks | Diagrams + tables; residual & stiffness-symmetry validation |
-| Model history | SQLite recents + example browser |
+| Model history | MySQL saved models + recent analyses + example browser |
 | API & scripting | REST + Swagger + importable `frame2d` package |
 
 ---
@@ -114,7 +114,7 @@ flowchart LR
     UI["React workbench"]
     API["FastAPI"]
     FEM["frame2d core"]
-    DB[("SQLite history")]
+    DB[("MySQL model store")]
 
     UI --> API
     API --> FEM
@@ -128,6 +128,7 @@ flowchart LR
 ## Commands
 
 ```bash
+docker compose up -d mysql           # start MySQL once
 npm run dev                          # UI + API
 FRAME2D_API_RELOAD=1 npm run dev     # also reload Python
 
@@ -141,7 +142,7 @@ npm run build
 | `FRAME2D_HOST` | `127.0.0.1` | Bind address |
 | `FRAME2D_API_PORT` | `8000` | API port |
 | `FRAME2D_FRONTEND_PORT` | `5173` | Frontend port |
-| `FRAME2D_DB_PATH` | `data/frame2d.sqlite3` | Model history DB |
+| `FRAME2D_DATABASE_URL` | `mysql://frame2d:frame2d@127.0.0.1:3307/frame2d` | MySQL model store |
 | `FRAME2D_API_RELOAD` | `0` | `1` = backend reload |
 
 Separate processes:
@@ -213,7 +214,7 @@ src/frame2d/       FE core, API, plotting
 tests/             numerical & API tests
 examples/          JSON / Python samples
 Math Logic/        derivations
-data/              local SQLite history
+docker-compose.yml MySQL + API services and persistent database volume
 scripts/dev.mjs    combined dev launcher
 ```
 

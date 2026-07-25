@@ -151,7 +151,7 @@ export const TOOL_HINTS: Record<ToolMode, ToolHint> = {
     title: 'Models & examples',
     body: 'Restore recent snapshots or load example frames to learn the workflow.',
     tips: [
-      'History is synced to the project SQLite database when the API is available.',
+      'Saved models and analysis snapshots are synced to the project MySQL database.',
       'Drag a recent model into Examples to keep it as a teaching template.',
     ],
   },

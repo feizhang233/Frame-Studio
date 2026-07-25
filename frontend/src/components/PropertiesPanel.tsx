@@ -49,7 +49,7 @@ interface PropertiesPanelProps {
   onNodalLoadDefaultsChange: (value: NodalLoadDefaults) => void
   onRestoreModel: (entry: ModelHistoryEntry) => void
   onDeleteHistory: (id: string) => void
-  onDeleteAllHistory: () => void
+  onDeleteHistoryGroup: (source: ModelHistoryEntry['source']) => void
   onDeleteExample: (id: string) => void
   onDeleteAllExamples: () => void
   onCreateExample: (entry: ModelHistoryEntry) => void
@@ -280,7 +280,7 @@ export function PropertiesPanel({
   onNodalLoadDefaultsChange,
   onRestoreModel,
   onDeleteHistory,
-  onDeleteAllHistory,
+  onDeleteHistoryGroup,
   onDeleteExample,
   onDeleteAllExamples,
   onCreateExample,
@@ -333,7 +333,7 @@ export function PropertiesPanel({
     )
   }
   if (activeTool === 'models') {
-    return <ModelsPanel history={modelHistory} examples={exampleModels} onRestore={onRestoreModel} onLoadExample={onLoadExample} onDeleteHistory={onDeleteHistory} onDeleteAllHistory={onDeleteAllHistory} onDeleteExample={onDeleteExample} onDeleteAllExamples={onDeleteAllExamples} onCreateExample={onCreateExample} onToggleCollapsed={onToggleCollapsed} />
+    return <ModelsPanel history={modelHistory} examples={exampleModels} onRestore={onRestoreModel} onLoadExample={onLoadExample} onDeleteHistory={onDeleteHistory} onDeleteHistoryGroup={onDeleteHistoryGroup} onDeleteExample={onDeleteExample} onDeleteAllExamples={onDeleteAllExamples} onCreateExample={onCreateExample} onToggleCollapsed={onToggleCollapsed} />
   }
   if (!selection && activeTool !== 'select') {
     return (

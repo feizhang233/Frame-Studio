@@ -1,8 +1,8 @@
-import AccountTreeIcon from '@mui/icons-material/AccountTree'
-import CategoryIcon from '@mui/icons-material/Category'
+import CropSquareIcon from '@mui/icons-material/CropSquare'
 import FiberManualRecordIcon from '@mui/icons-material/FiberManualRecord'
 import HistoryIcon from '@mui/icons-material/History'
 import LibraryBooksIcon from '@mui/icons-material/LibraryBooks'
+import LinearScaleIcon from '@mui/icons-material/LinearScale'
 import NearMeIcon from '@mui/icons-material/NearMe'
 import SouthIcon from '@mui/icons-material/South'
 import ChangeHistoryIcon from '@mui/icons-material/ChangeHistory'
@@ -34,8 +34,8 @@ const tools: ToolDefinition[] = [
   { id: 'select', label: 'Select', shortcut: 'V', icon: NearMeIcon },
   { id: 'node', label: 'Node', shortcut: 'N', icon: FiberManualRecordIcon },
   { id: 'material', label: 'Material', shortcut: 'M', icon: LibraryBooksIcon },
-  { id: 'section', label: 'Section', shortcut: 'C', icon: CategoryIcon },
-  { id: 'element', label: 'Element', shortcut: 'E', icon: AccountTreeIcon },
+  { id: 'section', label: 'Section', shortcut: 'C', icon: CropSquareIcon },
+  { id: 'element', label: 'Element', shortcut: 'E', icon: LinearScaleIcon },
   { id: 'support', label: 'Support', shortcut: 'S', icon: ChangeHistoryIcon },
   { id: 'load', label: 'Load', shortcut: 'L', icon: SouthIcon },
 ]

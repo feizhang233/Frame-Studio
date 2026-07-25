@@ -77,8 +77,9 @@ export async function deleteModelHistoryEntry(id: string): Promise<void> {
   }
 }
 
-export async function clearModelHistory(): Promise<void> {
-  const response = await fetch(`${API_BASE_URL}/api/v1/models`, { method: 'DELETE' })
+export async function clearModelHistory(source?: ModelHistoryEntry['source']): Promise<void> {
+  const query = source ? `?source=${encodeURIComponent(source)}` : ''
+  const response = await fetch(`${API_BASE_URL}/api/v1/models${query}`, { method: 'DELETE' })
   if (!response.ok) {
     throw new FrameApiError(await errorMessage(response), response.status)
   }

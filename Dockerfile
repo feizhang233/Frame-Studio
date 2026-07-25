@@ -8,7 +8,7 @@ COPY src ./src
 COPY frontend/dist ./frontend/dist
 RUN pip install --no-cache-dir -e .
 ENV MPLBACKEND=Agg \
-    FRAME2D_DB_PATH=/data/frame2d.sqlite3 \
+    FRAME2D_DATABASE_URL=mysql://frame2d:frame2d@mysql:3306/frame2d \
     MPLCONFIGDIR=/tmp/matplotlib
 EXPOSE 8002
 CMD ["uvicorn", "frame2d.api:app", "--host", "0.0.0.0", "--port", "8002"]

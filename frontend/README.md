@@ -36,4 +36,4 @@ Save 產生的 JSON 與根目錄 README 中的 `/api/v1/solve` request 格式相
 - 材料與截面是前端資源庫，可指派給單一構件或全部構件；送出分析前才解析成後端所需的 `E/A/I`。
 - 新構件預設不帶材料與截面；分析或儲存時若缺少必要指派，介面會導向相應資源庫。
 - Results 有 compact 與 expanded 兩種高度；結構式 `N/V/M` 圖只在 expanded 模式顯示。
-- 模型歷史由後端保存到 `data/frame2d.sqlite3`；舊版 `localStorage` 歷史會在首次載入時自動遷移。
+- Saved models 與最近分析由後端保存到 MySQL；舊版 `localStorage` 歷史會在首次載入時自動遷移。

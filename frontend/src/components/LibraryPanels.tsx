@@ -11,6 +11,7 @@ import FiberManualRecordIcon from '@mui/icons-material/FiberManualRecord'
 import HistoryIcon from '@mui/icons-material/History'
 import LibraryBooksIcon from '@mui/icons-material/LibraryBooks'
 import MenuBookIcon from '@mui/icons-material/MenuBook'
+import SaveIcon from '@mui/icons-material/Save'
 import ScheduleIcon from '@mui/icons-material/Schedule'
 import SouthIcon from '@mui/icons-material/South'
 import UndoIcon from '@mui/icons-material/Undo'
@@ -364,7 +365,7 @@ export function ModelsPanel({
   onRestore,
   onLoadExample,
   onDeleteHistory,
-  onDeleteAllHistory,
+  onDeleteHistoryGroup,
   onDeleteExample,
   onDeleteAllExamples,
   onCreateExample,
@@ -375,16 +376,19 @@ export function ModelsPanel({
   onRestore: (entry: ModelHistoryEntry) => void
   onLoadExample: (example: ExampleModelDefinition) => void
   onDeleteHistory: (id: string) => void
-  onDeleteAllHistory: () => void
+  onDeleteHistoryGroup: (source: ModelHistoryEntry['source']) => void
   onDeleteExample: (id: string) => void
   onDeleteAllExamples: () => void
   onCreateExample: (entry: ModelHistoryEntry) => void
   onToggleCollapsed: () => void
 }) {
   const [examplesCollapsed, setExamplesCollapsed] = useState(true)
+  const [savedCollapsed, setSavedCollapsed] = useState(false)
   const [historyCollapsed, setHistoryCollapsed] = useState(true)
   const [draggedHistoryId, setDraggedHistoryId] = useState<string | null>(null)
   const [exampleDropActive, setExampleDropActive] = useState(false)
+  const savedModels = history.filter((entry) => entry.source === 'saved')
+  const recentAnalyses = history.filter((entry) => entry.source === 'analyzed')
 
   const startHistoryDrag = (event: DragEvent<HTMLElement>, entry: ModelHistoryEntry) => {
     event.dataTransfer.effectAllowed = 'copy'
@@ -407,8 +411,32 @@ export function ModelsPanel({
 
   return (
     <aside className="properties-panel library-panel">
-      <LibraryHeader icon={<HistoryIcon fontSize="small" />} eyebrow="MODEL BROWSER" title="Models" subtitle={`${history.length} saved`} onToggleCollapsed={onToggleCollapsed} />
+      <LibraryHeader icon={<HistoryIcon fontSize="small" />} eyebrow="MODEL BROWSER" title="Models" subtitle={`${savedModels.length} saved`} onToggleCollapsed={onToggleCollapsed} />
       <div className="properties-scroll history-scroll">
+        <section className="model-browser-section">
+          <div className="model-section-header">
+            <button className="model-section-toggle" type="button" onClick={() => setSavedCollapsed((value) => !value)} aria-expanded={!savedCollapsed}>
+              {savedCollapsed ? <ChevronRightIcon fontSize="small" /> : <ExpandMoreIcon fontSize="small" />}
+              <SaveIcon fontSize="small" />
+              <span><strong>Saved models</strong><small>Models explicitly saved from the toolbar.</small></span>
+              <b>{savedModels.length}</b>
+            </button>
+            <button className="model-batch-delete" type="button" onClick={() => onDeleteHistoryGroup('saved')} disabled={savedModels.length === 0} aria-label="Delete all saved models" title="Delete all saved models"><DeleteOutlineIcon sx={{ fontSize: 14 }} /><span>Delete all</span></button>
+          </div>
+          {!savedCollapsed && (
+            <>
+              {savedModels.length === 0 && <div className="library-empty model-list-empty">Use Save to add the current model here.</div>}
+              <div className="history-list">
+                {savedModels.map((entry) => <article key={entry.id} className={`history-card ${draggedHistoryId === entry.id ? 'is-dragging' : ''}`} draggable onDragStart={(event) => startHistoryDrag(event, entry)} onDragEnd={() => { setDraggedHistoryId(null); setExampleDropActive(false) }}>
+                  <div className="history-card-top"><DragIndicatorIcon className="history-drag-handle" sx={{ fontSize: 16 }} /><div><span>SAVED</span><strong>{entry.name}</strong></div><div className="history-card-actions"><button type="button" onClick={() => onCreateExample(entry)} aria-label={`Add ${entry.name} to examples`} title="Add to Example models"><AddIcon sx={{ fontSize: 16 }} /></button><button type="button" onClick={() => onDeleteHistory(entry.id)} aria-label={`Delete ${entry.name}`} title="Delete saved model"><DeleteOutlineIcon sx={{ fontSize: 16 }} /></button></div></div>
+                  <div className="history-meta"><span>{entry.model.nodes.length} nodes</span><span>{entry.model.elements.length} elements</span><time>{new Date(entry.savedAt).toLocaleString()}</time></div>
+                  <button className="restore-button" type="button" onClick={() => onRestore(entry)}><UndoIcon sx={{ fontSize: 16 }} /> Open saved model</button>
+                </article>)}
+              </div>
+            </>
+          )}
+        </section>
+
         <section
           className={`model-browser-section ${exampleDropActive ? 'is-drop-target' : ''}`}
           onDragEnter={(event) => {
@@ -435,7 +463,7 @@ export function ModelsPanel({
           </div>
           {!examplesCollapsed && (
             <div className="example-model-list">
-              {examples.length === 0 && <div className="library-empty model-list-empty">Drag a Recent model here to create an Example.</div>}
+              {examples.length === 0 && <div className="library-empty model-list-empty">Drag a saved model or recent analysis here to create an Example.</div>}
               {examples.map((example) => (
                 <article key={example.id} className="example-model-card">
                   <div className="example-card-heading"><div><strong>{example.name}</strong><span>{example.description}</span></div><button type="button" onClick={() => onDeleteExample(example.id)} aria-label={`Delete example ${example.name}`} title="Delete example"><DeleteOutlineIcon sx={{ fontSize: 16 }} /></button></div>
@@ -452,17 +480,17 @@ export function ModelsPanel({
             <button className="model-section-toggle" type="button" onClick={() => setHistoryCollapsed((value) => !value)} aria-expanded={!historyCollapsed}>
               {historyCollapsed ? <ChevronRightIcon fontSize="small" /> : <ExpandMoreIcon fontSize="small" />}
               <ScheduleIcon fontSize="small" />
-              <span><strong>Recent models</strong><small>Drag a card into Example models to reuse it.</small></span>
-              <b>{history.length}</b>
+              <span><strong>Recent analyses</strong><small>Automatic snapshots created after analysis.</small></span>
+              <b>{recentAnalyses.length}</b>
             </button>
-            <button className="model-batch-delete" type="button" onClick={onDeleteAllHistory} disabled={history.length === 0} aria-label="Delete all recent models" title="Delete all recent models"><DeleteOutlineIcon sx={{ fontSize: 14 }} /><span>Delete all</span></button>
+            <button className="model-batch-delete" type="button" onClick={() => onDeleteHistoryGroup('analyzed')} disabled={recentAnalyses.length === 0} aria-label="Delete all recent analyses" title="Delete all recent analyses"><DeleteOutlineIcon sx={{ fontSize: 14 }} /><span>Delete all</span></button>
           </div>
           {!historyCollapsed && (
             <>
-              {history.length === 0 && <div className="library-empty model-list-empty">Save or analyze a model to create the first snapshot.</div>}
+              {recentAnalyses.length === 0 && <div className="library-empty model-list-empty">Run an analysis to create the first automatic snapshot.</div>}
               <div className="history-list">
-                {history.map((entry) => <article key={entry.id} className={`history-card ${draggedHistoryId === entry.id ? 'is-dragging' : ''}`} draggable onDragStart={(event) => startHistoryDrag(event, entry)} onDragEnd={() => { setDraggedHistoryId(null); setExampleDropActive(false) }}>
-                  <div className="history-card-top"><DragIndicatorIcon className="history-drag-handle" sx={{ fontSize: 16 }} /><div><span>{entry.source === 'saved' ? 'SAVED' : 'ANALYZED'}</span><strong>{entry.name}</strong></div><div className="history-card-actions"><button type="button" onClick={() => onCreateExample(entry)} aria-label={`Add ${entry.name} to examples`} title="Add to Example models"><AddIcon sx={{ fontSize: 16 }} /></button><button type="button" onClick={() => onDeleteHistory(entry.id)} aria-label={`Delete ${entry.name}`} title="Delete recent model"><DeleteOutlineIcon sx={{ fontSize: 16 }} /></button></div></div>
+                {recentAnalyses.map((entry) => <article key={entry.id} className={`history-card ${draggedHistoryId === entry.id ? 'is-dragging' : ''}`} draggable onDragStart={(event) => startHistoryDrag(event, entry)} onDragEnd={() => { setDraggedHistoryId(null); setExampleDropActive(false) }}>
+                  <div className="history-card-top"><DragIndicatorIcon className="history-drag-handle" sx={{ fontSize: 16 }} /><div><span>ANALYZED</span><strong>{entry.name}</strong></div><div className="history-card-actions"><button type="button" onClick={() => onCreateExample(entry)} aria-label={`Add ${entry.name} to examples`} title="Add to Example models"><AddIcon sx={{ fontSize: 16 }} /></button><button type="button" onClick={() => onDeleteHistory(entry.id)} aria-label={`Delete ${entry.name}`} title="Delete recent analysis"><DeleteOutlineIcon sx={{ fontSize: 16 }} /></button></div></div>
                   <div className="history-meta"><span>{entry.model.nodes.length} nodes</span><span>{entry.model.elements.length} elements</span><time>{new Date(entry.savedAt).toLocaleString()}</time></div>
                   <button className="restore-button" type="button" onClick={() => onRestore(entry)}><UndoIcon sx={{ fontSize: 16 }} /> Restore model</button>
                 </article>)}

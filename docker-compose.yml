@@ -1,18 +1,46 @@
 services:
+  mysql:
+    image: mysql:8.4
+    container_name: frame2d-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: frame2d
+      MYSQL_USER: frame2d
+      MYSQL_PASSWORD: ${FRAME2D_DB_PASSWORD:-frame2d}
+      MYSQL_ROOT_PASSWORD: ${FRAME2D_DB_ROOT_PASSWORD:-frame2d-root}
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+    ports:
+      - "127.0.0.1:${FRAME2D_MYSQL_PORT:-3307}:3306"
+    volumes:
+      - frame2d_mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p$$MYSQL_ROOT_PASSWORD --silent"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 20s
+
   frame2d:
     build: .
     container_name: frame2d
     restart: unless-stopped
     environment:
       MPLBACKEND: Agg
-      FRAME2D_DB_PATH: /data/frame2d.sqlite3
+      FRAME2D_DATABASE_URL: mysql://frame2d:${FRAME2D_DB_PASSWORD:-frame2d}@mysql:3306/frame2d
       MPLCONFIGDIR: /tmp/matplotlib
-    volumes:
-      - ./data:/data
+    depends_on:
+      mysql:
+        condition: service_healthy
     ports:
       - "127.0.0.1:8002:8002"
     networks:
+      - default
       - nextcloud_nextcloud
+
+volumes:
+  frame2d_mysql_data:
 
 networks:
   nextcloud_nextcloud:

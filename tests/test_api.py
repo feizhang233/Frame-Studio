@@ -1,11 +1,42 @@
-from concurrent.futures import ThreadPoolExecutor
-from pathlib import Path
-
 import pytest
 from fastapi.testclient import TestClient
 
+import frame2d.api as api_module
 from frame2d.api import app
-from frame2d.history_store import ModelHistoryStore
+from frame2d.history_store import (
+    DEFAULT_DATABASE_URL,
+    ModelHistoryStore,
+    parse_mysql_database_url,
+)
+
+
+class InMemoryHistoryStore:
+    def __init__(self) -> None:
+        self.entries: dict[str, dict] = {}
+
+    def list(self, limit: int = 12) -> list[dict]:
+        return sorted(
+            self.entries.values(),
+            key=lambda entry: entry["savedAt"],
+            reverse=True,
+        )[:limit]
+
+    def save(self, entry: dict) -> dict:
+        self.entries[entry["id"]] = entry
+        return entry
+
+    def delete(self, entry_id: str) -> bool:
+        return self.entries.pop(entry_id, None) is not None
+
+    def clear(self, source: str | None = None) -> int:
+        ids = [
+            entry_id
+            for entry_id, entry in self.entries.items()
+            if source is None or entry["source"] == source
+        ]
+        for entry_id in ids:
+            del self.entries[entry_id]
+        return len(ids)
 
 
 @pytest.fixture
@@ -14,21 +45,41 @@ def client() -> TestClient:
 
 
 @pytest.fixture(autouse=True)
-def isolated_database(tmp_path, monkeypatch) -> None:
-    monkeypatch.setenv("FRAME2D_DB_PATH", str(tmp_path / "frame2d-test.sqlite3"))
+def isolated_database(monkeypatch) -> None:
+    store = InMemoryHistoryStore()
+    monkeypatch.setattr(api_module, "ModelHistoryStore", lambda: store)
 
 
-def test_default_database_path_is_relative_to_program_directory(
-    tmp_path, monkeypatch
-) -> None:
-    monkeypatch.delenv("FRAME2D_DB_PATH", raising=False)
-    monkeypatch.chdir(tmp_path)
+def test_default_database_url_targets_local_mysql(monkeypatch) -> None:
+    monkeypatch.delenv("FRAME2D_DATABASE_URL", raising=False)
 
     store = ModelHistoryStore()
 
-    assert store.database_path == Path("data/frame2d.sqlite3")
-    store.list()
-    assert (tmp_path / "data" / "frame2d.sqlite3").is_file()
+    assert store.database_url == DEFAULT_DATABASE_URL
+    assert store.connection_options == {
+        "host": "127.0.0.1",
+        "port": 3307,
+        "user": "frame2d",
+        "password": "frame2d",
+        "database": "frame2d",
+        "charset": "utf8mb4",
+        "connect_timeout": 10,
+        "autocommit": False,
+    }
+
+
+def test_mysql_database_url_decodes_credentials_and_options() -> None:
+    options = parse_mysql_database_url(
+        "mysql+pymysql://frame%402d:p%40ss@db.internal:3308/frame%20studio"
+        "?charset=utf8mb4&connect_timeout=4"
+    )
+
+    assert options["host"] == "db.internal"
+    assert options["port"] == 3308
+    assert options["user"] == "frame@2d"
+    assert options["password"] == "p@ss"
+    assert options["database"] == "frame studio"
+    assert options["connect_timeout"] == 4
 
 
 @pytest.fixture
@@ -188,21 +239,19 @@ def test_model_history_can_be_cleared_in_one_request(client: TestClient) -> None
     assert client.get("/api/v1/models").json() == []
 
 
-def test_model_history_handles_concurrent_first_writes(tmp_path) -> None:
-    database_path = tmp_path / "concurrent.sqlite3"
+def test_model_history_can_be_cleared_by_source(client: TestClient) -> None:
+    for source in ("saved", "analyzed"):
+        entry = {
+            "id": f"snapshot-{source}",
+            "name": f"Snapshot {source}",
+            "savedAt": f"2026-07-17T08:30:00.000Z-{source}",
+            "source": source,
+            "model": {"name": f"Snapshot {source}"},
+        }
+        assert client.post("/api/v1/models", json=entry).status_code == 201
 
-    def save(index: int) -> None:
-        ModelHistoryStore(database_path).save(
-            {
-                "id": f"snapshot-{index}",
-                "name": f"Snapshot {index}",
-                "savedAt": f"2026-07-17T08:30:{index:02d}.000Z",
-                "source": "saved",
-                "model": {"name": f"Snapshot {index}"},
-            }
-        )
+    response = client.delete("/api/v1/models?source=saved")
 
-    with ThreadPoolExecutor(max_workers=6) as executor:
-        list(executor.map(save, range(6)))
-
-    assert len(ModelHistoryStore(database_path).list()) == 6
+    assert response.status_code == 204
+    remaining = client.get("/api/v1/models").json()
+    assert [entry["source"] for entry in remaining] == ["analyzed"]

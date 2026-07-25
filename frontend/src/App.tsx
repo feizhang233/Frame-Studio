@@ -344,14 +344,20 @@ export default function App() {
     })
   }, [modelHistory, showMessage])
 
-  const handleDeleteAllHistory = useCallback(() => {
-    if (modelHistory.length === 0) return
-    if (!window.confirm(`Delete all ${modelHistory.length} recent models?`)) return
-    const deleted = modelHistory
-    setModelHistory([])
-    void clearModelHistory().catch(() => {
-      setModelHistory(deleted)
-      showMessage('Could not clear history from the database.', 'error')
+  const handleDeleteHistoryGroup = useCallback((source: ModelHistoryEntry['source']) => {
+    const deleted = modelHistory.filter((entry) => entry.source === source)
+    if (deleted.length === 0) return
+    const label = source === 'saved' ? 'saved models' : 'recent analyses'
+    if (!window.confirm(`Delete all ${deleted.length} ${label}?`)) return
+    setModelHistory((current) => current.filter((entry) => entry.source !== source))
+    void clearModelHistory(source).catch(() => {
+      setModelHistory((current) => {
+        const restoredIds = new Set(deleted.map((entry) => entry.id))
+        return [...deleted, ...current.filter((entry) => !restoredIds.has(entry.id))]
+          .sort((a, b) => b.savedAt.localeCompare(a.savedAt))
+          .slice(0, 12)
+      })
+      showMessage(`Could not clear ${label} from the database.`, 'error')
     })
   }, [modelHistory, showMessage])
 
@@ -575,6 +581,7 @@ export default function App() {
               assignmentOverlay={assignmentOverlay}
               dispatch={dispatch}
               onSelectionChange={setSelection}
+              onRename={(name) => dispatch({ type: 'rename', name })}
               onMessage={(message) => showMessage(message)}
               onCloseAssignmentOverlay={() => setAssignmentOverlay(null)}
             />
@@ -614,7 +621,7 @@ export default function App() {
             onRestoreModel={handleRestoreModel}
             onLoadExample={handleLoadExample}
             onDeleteHistory={handleDeleteHistory}
-            onDeleteAllHistory={handleDeleteAllHistory}
+            onDeleteHistoryGroup={handleDeleteHistoryGroup}
             onDeleteExample={handleDeleteExample}
             onDeleteAllExamples={handleDeleteAllExamples}
             onCreateExample={handleCreateExample}

@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Annotated, Any, Literal
 
 import numpy as np
-from fastapi import FastAPI, HTTPException, Request, Response, status
+from fastapi import FastAPI, HTTPException, Query, Request, Response, status
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, ConfigDict, Field
@@ -344,7 +344,7 @@ def health() -> HealthResponse:
     tags=["models"],
 )
 def list_models() -> list[dict[str, Any]]:
-    """Return the latest model snapshots stored in SQLite."""
+    """Return the latest model snapshots stored in MySQL."""
     return ModelHistoryStore().list()
 
 
@@ -355,7 +355,7 @@ def list_models() -> list[dict[str, Any]]:
     tags=["models"],
 )
 def save_model(entry: ModelHistoryEntry) -> dict[str, Any]:
-    """Create or replace a model snapshot in SQLite."""
+    """Create or replace a model snapshot in MySQL."""
     return ModelHistoryStore().save(entry.model_dump())
 
 
@@ -364,9 +364,11 @@ def save_model(entry: ModelHistoryEntry) -> dict[str, Any]:
     status_code=status.HTTP_204_NO_CONTENT,
     tags=["models"],
 )
-def clear_models() -> Response:
-    """Delete every model snapshot from SQLite."""
-    ModelHistoryStore().clear()
+def clear_models(
+    source: Annotated[Literal["saved", "analyzed"] | None, Query()] = None,
+) -> Response:
+    """Delete every model snapshot, optionally restricted by source."""
+    ModelHistoryStore().clear(source)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
@@ -376,7 +378,7 @@ def clear_models() -> Response:
     tags=["models"],
 )
 def delete_model(entry_id: str) -> Response:
-    """Delete a model snapshot from SQLite."""
+    """Delete a model snapshot from MySQL."""
     if not ModelHistoryStore().delete(entry_id):
         raise HTTPException(status_code=404, detail="Model snapshot not found")
     return Response(status_code=status.HTTP_204_NO_CONTENT)

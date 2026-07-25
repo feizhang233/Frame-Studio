@@ -5,6 +5,7 @@ import NearMeIcon from '@mui/icons-material/NearMe'
 import RemoveIcon from '@mui/icons-material/Remove'
 import Chip from '@mui/material/Chip'
 import IconButton from '@mui/material/IconButton'
+import InputBase from '@mui/material/InputBase'
 import Paper from '@mui/material/Paper'
 import Stack from '@mui/material/Stack'
 import Typography from '@mui/material/Typography'
@@ -60,6 +61,7 @@ interface ModelCanvasProps {
   assignmentOverlay: AssignmentOverlayKind | null
   dispatch: Dispatch<ModelAction>
   onSelectionChange: (selection: Selection) => void
+  onRename: (name: string) => void
   onMessage: (message: string) => void
   onCloseAssignmentOverlay: () => void
 }
@@ -97,6 +99,7 @@ export function ModelCanvas({
   assignmentOverlay,
   dispatch,
   onSelectionChange,
+  onRename,
   onMessage,
   onCloseAssignmentOverlay,
 }: ModelCanvasProps) {
@@ -362,9 +365,25 @@ export function ModelCanvas({
           <Typography variant="caption" color="text.secondary" fontWeight={700} sx={{ display: { xs: 'none', sm: 'inline' } }}>
             MODEL SPACE
           </Typography>
-          <Typography variant="body2" fontWeight={600} noWrap sx={{ maxWidth: 200 }}>
-            {model.name}
-          </Typography>
+          <InputBase
+            value={model.name}
+            onChange={(event) => onRename(event.target.value)}
+            onFocus={(event) => event.currentTarget.select()}
+            inputProps={{ 'aria-label': 'Model name' }}
+            sx={{
+              width: 'clamp(120px, 18vw, 240px)',
+              px: 0.75,
+              py: 0.25,
+              borderRadius: 1,
+              typography: 'body2',
+              fontWeight: 600,
+              '&:hover': { bgcolor: 'grey.100' },
+              '&.Mui-focused': {
+                bgcolor: 'background.paper',
+                boxShadow: (theme) => `inset 0 0 0 1px ${theme.palette.primary.main}`,
+              },
+            }}
+          />
           <Chip size="small" label={`${model.nodes.length} nodes`} variant="outlined" />
           <Chip size="small" label={`${model.elements.length} elements`} variant="outlined" sx={{ display: { xs: 'none', md: 'inline-flex' } }} />
         </Stack>
