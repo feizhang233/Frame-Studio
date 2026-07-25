@@ -14,6 +14,7 @@ import {
 import { GuidanceDialog } from './components/GuidanceDialog'
 import { ModelCanvas } from './components/ModelCanvas'
 import { PropertiesPanel } from './components/PropertiesPanel'
+import type { AssignmentOverlayKind } from './components/LibraryPanels'
 import { ResultsPanel, type ResultTab } from './components/ResultsPanel'
 import { ToolGuidanceAlert } from './components/ToolGuidanceAlert'
 import { ToolRail } from './components/ToolRail'
@@ -118,7 +119,9 @@ export default function App() {
   const [analysisState, setAnalysisState] = useState<AnalysisState>('idle')
   const [analysisError, setAnalysisError] = useState<string | null>(null)
   const [resultsExpanded, setResultsExpanded] = useState(false)
+  const [resultsOpen, setResultsOpen] = useState(false)
   const [propertiesCollapsed, setPropertiesCollapsed] = useState(false)
+  const [assignmentOverlay, setAssignmentOverlay] = useState<AssignmentOverlayKind | null>(null)
   const [canvasRevision, setCanvasRevision] = useState(0)
   const [elementDefaults, setElementDefaults] = useState<ElementDefaults>({ materialId: null, sectionId: null })
   const [supportDefaults, setSupportDefaults] = useState<SupportDefaults>({ u: true, v: true, phi: true, angle: 0 })
@@ -140,6 +143,8 @@ export default function App() {
       setResult(null)
       setAnalysisState('idle')
       setAnalysisError(null)
+      setResultsExpanded(false)
+      setResultsOpen(false)
     }
   }, [])
 
@@ -189,6 +194,8 @@ export default function App() {
     setAnalysisState('idle')
     setActiveTool('node')
     setElementDefaults({ materialId: null, sectionId: null })
+    setResultsExpanded(false)
+    setResultsOpen(false)
     setCanvasRevision((revision) => revision + 1)
     setIsDirty(false)
     showMessage('Blank model created')
@@ -210,6 +217,8 @@ export default function App() {
       setResult(null)
       setAnalysisError(null)
       setAnalysisState('idle')
+      setResultsExpanded(false)
+      setResultsOpen(false)
       setCanvasRevision((revision) => revision + 1)
       setIsDirty(false)
       showMessage(`Opened ${file.name}`, 'success')
@@ -246,12 +255,14 @@ export default function App() {
     setAnalysisState('running')
     setAnalysisError(null)
     setResult(null)
+    setResultsOpen(true)
     try {
       const response = await solveFrame(model, controller.signal)
       if (controller.signal.aborted) return
       setResult(response)
       setAnalysisState('success')
       setActiveResult('displacement')
+      setResultsOpen(true)
       void rememberModel(model, 'analyzed')
       showMessage('Analysis complete — results updated', 'success')
     } catch (error) {
@@ -267,6 +278,7 @@ export default function App() {
         : 'Analysis failed. Check the model.'
       setAnalysisError(message)
       setAnalysisState('error')
+      setResultsOpen(true)
       showMessage(message, 'error')
     }
   }, [guideToMissingAssignment, model, rememberModel, showMessage])
@@ -274,6 +286,15 @@ export default function App() {
   const handleToolChange = useCallback((tool: ToolMode) => {
     setActiveTool(tool)
     setSelection(null)
+    if (tool !== 'material' && tool !== 'section') {
+      setAssignmentOverlay(null)
+    } else {
+      setAssignmentOverlay((current) => (current && current !== tool ? null : current))
+    }
+  }, [])
+
+  const handleToggleAssignmentOverlay = useCallback((kind: AssignmentOverlayKind) => {
+    setAssignmentOverlay((current) => (current === kind ? null : kind))
   }, [])
 
   const handleRestoreModel = useCallback((entry: ModelHistoryEntry) => {
@@ -285,6 +306,8 @@ export default function App() {
       setAnalysisState('idle')
       setActiveTool('select')
       setElementDefaults({ materialId: null, sectionId: null })
+      setResultsExpanded(false)
+      setResultsOpen(false)
       setCanvasRevision((revision) => revision + 1)
       setIsDirty(false)
       showMessage(`Restored ${entry.name}`, 'success')
@@ -302,6 +325,8 @@ export default function App() {
     setAnalysisState('idle')
     setActiveTool('select')
     setElementDefaults({ materialId: null, sectionId: null })
+    setResultsExpanded(false)
+    setResultsOpen(false)
     setCanvasRevision((revision) => revision + 1)
     setIsDirty(false)
     showMessage(`Loaded ${example.name}`, 'success')
@@ -433,6 +458,21 @@ export default function App() {
     historyAbortRef.current?.abort()
   }, [])
 
+  // Close assignment map when clicking anywhere except the Assignment panel controls.
+  useEffect(() => {
+    if (!assignmentOverlay) return
+    const handlePointerDown = (event: PointerEvent) => {
+      const target = event.target as HTMLElement | null
+      if (target?.closest('[data-assignment-overlay-keep]')) return
+      setAssignmentOverlay(null)
+    }
+    document.addEventListener('pointerdown', handlePointerDown, true)
+    return () => document.removeEventListener('pointerdown', handlePointerDown, true)
+  }, [assignmentOverlay])
+
+  // During model setup (no results / not running), keep Results collapsed to a thin strip.
+  const resultsMinimized = !result && !analysisError && analysisState !== 'running' && !resultsOpen && !resultsExpanded
+
   return (
     <Box
       className="app-shell"
@@ -465,7 +505,7 @@ export default function App() {
 
       <Box
         component="main"
-        className={`workspace ${resultsExpanded ? 'workspace--results-expanded' : ''} ${propertiesCollapsed ? 'workspace--properties-collapsed' : ''}`}
+        className={`workspace ${resultsExpanded ? 'workspace--results-expanded' : ''} ${resultsMinimized ? 'workspace--results-minimized' : ''} ${propertiesCollapsed ? 'workspace--properties-collapsed' : ''}`}
         sx={{
           flex: 1,
           minHeight: 0,
@@ -477,11 +517,13 @@ export default function App() {
           },
           gridTemplateRows: resultsExpanded
             ? { xs: 'minmax(240px, 1fr) auto minmax(320px, 0.9fr)', md: 'minmax(210px, 38%) minmax(400px, 62%)' }
-            : { xs: 'minmax(280px, 1fr) auto clamp(240px, 28vh, 340px)', md: 'minmax(280px, 1fr) clamp(300px, 30vh, 360px)' },
+            : resultsMinimized
+              ? { xs: 'minmax(280px, 1fr) auto 44px', md: 'minmax(0, 1fr) 44px' }
+              : { xs: 'minmax(280px, 1fr) auto clamp(240px, 28vh, 340px)', md: 'minmax(280px, 1fr) clamp(300px, 30vh, 360px)' },
           overflow: 'hidden',
         }}
       >
-        <Box sx={{ gridColumn: 1, gridRow: { xs: '1 / -1', md: '1 / 3' }, minHeight: 0, display: 'flex' }}>
+        <Box sx={{ gridColumn: 1, gridRow: { xs: '1 / -1', md: '1 / 3' }, minHeight: 0, minWidth: 0, display: 'flex', height: '100%' }}>
           <ToolRail activeTool={activeTool} onToolChange={handleToolChange} />
         </Box>
 
@@ -510,9 +552,11 @@ export default function App() {
               elementDefaults={elementDefaults}
               supportDefaults={supportDefaults}
               nodalLoadDefaults={nodalLoadDefaults}
+              assignmentOverlay={assignmentOverlay}
               dispatch={dispatch}
               onSelectionChange={setSelection}
               onMessage={(message) => showMessage(message)}
+              onCloseAssignmentOverlay={() => setAssignmentOverlay(null)}
             />
           </Box>
         </Box>
@@ -541,6 +585,7 @@ export default function App() {
             modelHistory={modelHistory}
             exampleModels={exampleModels}
             isCollapsed={propertiesCollapsed}
+            assignmentOverlay={assignmentOverlay}
             dispatch={dispatch}
             onToolChange={handleToolChange}
             onElementDefaultsChange={setElementDefaults}
@@ -554,6 +599,7 @@ export default function App() {
             onDeleteAllExamples={handleDeleteAllExamples}
             onCreateExample={handleCreateExample}
             onSelectionChange={setSelection}
+            onToggleAssignmentOverlay={handleToggleAssignmentOverlay}
             onToggleCollapsed={() => setPropertiesCollapsed((collapsed) => !collapsed)}
           />
         </Box>
@@ -576,8 +622,23 @@ export default function App() {
             isRunning={analysisState === 'running'}
             error={analysisError}
             isExpanded={resultsExpanded}
+            isMinimized={resultsMinimized}
             onTabChange={setActiveResult}
-            onToggleExpanded={() => setResultsExpanded((expanded) => !expanded)}
+            onToggleExpanded={() => {
+              setResultsExpanded((expanded) => {
+                const next = !expanded
+                if (next) setResultsOpen(true)
+                return next
+              })
+            }}
+            onOpen={() => {
+              setResultsOpen(true)
+              setResultsExpanded(false)
+            }}
+            onMinimize={() => {
+              setResultsOpen(false)
+              setResultsExpanded(false)
+            }}
             onRun={handleRun}
           />
         </Box>

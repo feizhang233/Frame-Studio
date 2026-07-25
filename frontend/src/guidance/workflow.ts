@@ -18,7 +18,7 @@ export const WORKFLOW_STEPS: WorkflowStep[] = [
     shortLabel: 'Nodes',
     tool: 'node',
     description: 'Define joint locations in the global XY plane.',
-    howTo: 'Select Node (N), then click the canvas. Coordinates snap to 0.25 m.',
+    howTo: 'Select Node (N), enter X/Y coordinates or click the canvas. Coordinates snap to 0.25 m.',
     shortcut: 'N',
   },
   {
@@ -93,10 +93,10 @@ export const TOOL_HINTS: Record<ToolMode, ToolHint> = {
   },
   node: {
     title: 'Place nodes',
-    body: 'Click on the canvas to create joints. Coordinates are snapped for tidy models.',
+    body: 'Enter X/Y in the Properties panel or click the canvas to create joints. Coordinates snap to 0.25 m.',
     tips: [
-      'Edit X/Y in the Properties panel after selecting a node.',
-      'At least two nodes are needed before you can draw an element.',
+      'Use Place by coordinates when you know exact positions.',
+      'Edit X/Y later by selecting a node. At least two nodes are needed before drawing an element.',
     ],
   },
   material: {

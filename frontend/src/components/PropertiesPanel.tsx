@@ -28,6 +28,7 @@ import {
   ModelsPanel,
   SectionLibraryPanel,
   ToolSetupPanel,
+  type AssignmentOverlayKind,
 } from './LibraryPanels'
 
 interface PropertiesPanelProps {
@@ -40,6 +41,7 @@ interface PropertiesPanelProps {
   modelHistory: ModelHistoryEntry[]
   exampleModels: ExampleModelDefinition[]
   isCollapsed: boolean
+  assignmentOverlay: AssignmentOverlayKind | null
   dispatch: Dispatch<ModelAction>
   onToolChange: (tool: ToolMode) => void
   onElementDefaultsChange: (value: ElementDefaults) => void
@@ -53,6 +55,7 @@ interface PropertiesPanelProps {
   onCreateExample: (entry: ModelHistoryEntry) => void
   onLoadExample: (example: ExampleModelDefinition) => void
   onSelectionChange: (selection: Selection) => void
+  onToggleAssignmentOverlay: (kind: AssignmentOverlayKind) => void
   onToggleCollapsed: () => void
 }
 
@@ -175,6 +178,7 @@ export function PropertiesPanel({
   modelHistory,
   exampleModels,
   isCollapsed,
+  assignmentOverlay,
   dispatch,
   onToolChange,
   onElementDefaultsChange,
@@ -188,6 +192,7 @@ export function PropertiesPanel({
   onCreateExample,
   onLoadExample,
   onSelectionChange,
+  onToggleAssignmentOverlay,
   onToggleCollapsed,
 }: PropertiesPanelProps) {
   const close = () => onSelectionChange(null)
@@ -208,16 +213,51 @@ export function PropertiesPanel({
   }
 
   if (activeTool === 'material') {
-    return <MaterialLibraryPanel model={model} dispatch={dispatch} elementDefaults={elementDefaults} onElementDefaultsChange={onElementDefaultsChange} onToggleCollapsed={onToggleCollapsed} />
+    return (
+      <MaterialLibraryPanel
+        model={model}
+        dispatch={dispatch}
+        elementDefaults={elementDefaults}
+        assignmentOverlay={assignmentOverlay}
+        onElementDefaultsChange={onElementDefaultsChange}
+        onToggleAssignmentOverlay={onToggleAssignmentOverlay}
+        onToggleCollapsed={onToggleCollapsed}
+      />
+    )
   }
   if (activeTool === 'section') {
-    return <SectionLibraryPanel model={model} dispatch={dispatch} elementDefaults={elementDefaults} onElementDefaultsChange={onElementDefaultsChange} onToggleCollapsed={onToggleCollapsed} />
+    return (
+      <SectionLibraryPanel
+        model={model}
+        dispatch={dispatch}
+        elementDefaults={elementDefaults}
+        assignmentOverlay={assignmentOverlay}
+        onElementDefaultsChange={onElementDefaultsChange}
+        onToggleAssignmentOverlay={onToggleAssignmentOverlay}
+        onToggleCollapsed={onToggleCollapsed}
+      />
+    )
   }
   if (activeTool === 'models') {
     return <ModelsPanel history={modelHistory} examples={exampleModels} onRestore={onRestoreModel} onLoadExample={onLoadExample} onDeleteHistory={onDeleteHistory} onDeleteAllHistory={onDeleteAllHistory} onDeleteExample={onDeleteExample} onDeleteAllExamples={onDeleteAllExamples} onCreateExample={onCreateExample} onToggleCollapsed={onToggleCollapsed} />
   }
   if (!selection && activeTool !== 'select') {
-    return <ToolSetupPanel tool={activeTool} model={model} elementDefaults={elementDefaults} supportDefaults={supportDefaults} nodalLoadDefaults={nodalLoadDefaults} onElementDefaultsChange={onElementDefaultsChange} onSupportDefaultsChange={onSupportDefaultsChange} onNodalLoadDefaultsChange={onNodalLoadDefaultsChange} onToolChange={onToolChange} onToggleCollapsed={onToggleCollapsed} />
+    return (
+      <ToolSetupPanel
+        tool={activeTool}
+        model={model}
+        elementDefaults={elementDefaults}
+        supportDefaults={supportDefaults}
+        nodalLoadDefaults={nodalLoadDefaults}
+        dispatch={dispatch}
+        onElementDefaultsChange={onElementDefaultsChange}
+        onSupportDefaultsChange={onSupportDefaultsChange}
+        onNodalLoadDefaultsChange={onNodalLoadDefaultsChange}
+        onToolChange={onToolChange}
+        onToggleCollapsed={onToggleCollapsed}
+        onSelectionChange={onSelectionChange}
+      />
+    )
   }
 
   if (!selection) {

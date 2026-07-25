@@ -28,6 +28,7 @@ import {
 } from '../domain/frame'
 import type { ModelAction } from '../state/modelReducer'
 import { formatNumber } from '../utils/format'
+import type { AssignmentOverlayKind } from './LibraryPanels'
 import { SupportGlyph } from './SupportGlyph'
 
 const CANVAS_WIDTH = 1100
@@ -56,9 +57,11 @@ interface ModelCanvasProps {
   elementDefaults: ElementDefaults
   supportDefaults: SupportDefaults
   nodalLoadDefaults: NodalLoadDefaults
+  assignmentOverlay: AssignmentOverlayKind | null
   dispatch: Dispatch<ModelAction>
   onSelectionChange: (selection: Selection) => void
   onMessage: (message: string) => void
+  onCloseAssignmentOverlay: () => void
 }
 
 const snap = (value: number, step = 0.25) => Math.round(value / step) * step
@@ -91,9 +94,11 @@ export function ModelCanvas({
   elementDefaults,
   supportDefaults,
   nodalLoadDefaults,
+  assignmentOverlay,
   dispatch,
   onSelectionChange,
   onMessage,
+  onCloseAssignmentOverlay,
 }: ModelCanvasProps) {
   const svgRef = useRef<SVGSVGElement>(null)
   const [view, setView] = useState<ViewTransform>(() => fittedView(model))
@@ -292,9 +297,10 @@ export function ModelCanvas({
     })
   }, [activeResult, result, view])
 
-  const toolHint =
-    tool === 'node'
-      ? 'Click canvas to place a node'
+  const toolHint = assignmentOverlay
+    ? `Showing ${assignmentOverlay} assignments · click elsewhere to close`
+    : tool === 'node'
+      ? 'Click canvas or enter coordinates to place a node'
       : tool === 'element'
         ? elementStart
           ? `Select end node · start N${elementStart}`
@@ -310,6 +316,29 @@ export function ModelCanvas({
                 : tool === 'models'
                   ? 'Open a saved model from model history'
                   : 'Drag nodes to edit · drag canvas to pan'
+
+  const assignmentLegend = useMemo(() => {
+    if (!assignmentOverlay) return []
+    if (assignmentOverlay === 'material') {
+      return model.materials.map((item) => ({ id: item.id, name: item.name, color: item.color }))
+    }
+    return model.sections.map((item) => ({ id: item.id, name: item.name, color: item.color }))
+  }, [assignmentOverlay, model.materials, model.sections])
+
+  const resolveAssignment = (elementId: number) => {
+    const element = model.elements.find((item) => item.id === elementId)
+    if (!element || !assignmentOverlay) return null
+    if (assignmentOverlay === 'material') {
+      const material = model.materials.find((item) => item.id === element.material_id)
+      return material
+        ? { name: material.name, color: material.color, assigned: true as const }
+        : { name: 'Unassigned', color: '#9aa5b5', assigned: false as const }
+    }
+    const section = model.sections.find((item) => item.id === element.section_id)
+    return section
+      ? { name: section.name, color: section.color, assigned: true as const }
+      : { name: 'Unassigned', color: '#9aa5b5', assigned: false as const }
+  }
 
   return (
     <section className="canvas-panel" aria-label="Structural model canvas" style={{ height: '100%', display: 'grid', gridTemplateRows: 'auto minmax(0, 1fr)' }}>
@@ -387,11 +416,44 @@ export function ModelCanvas({
               const end = screenPoint(nodeJ.x, nodeJ.y)
               const selected = selection?.type === 'element' && selection.id === element.id
               const midpoint = { x: (start.x + end.x) / 2, y: (start.y + end.y) / 2 }
+              const assignment = resolveAssignment(element.id)
+              const stroke = assignment ? assignment.color : undefined
               return (
                 <g key={element.id}>
                   <line role="button" aria-label={`Element E${element.id}`} className="element-hitarea" x1={start.x} y1={start.y} x2={end.x} y2={end.y} onPointerDown={(event) => onElementPointerDown(event, element.id)} />
-                  <line className={`frame-element ${selected ? 'is-selected' : ''}`} x1={start.x} y1={start.y} x2={end.x} y2={end.y} pointerEvents="none" />
-                  <text className="element-label" x={midpoint.x + 8} y={midpoint.y - 10}>E{element.id}</text>
+                  <line
+                    className={`frame-element ${selected ? 'is-selected' : ''} ${assignment && !assignment.assigned ? 'is-unassigned' : ''}`}
+                    x1={start.x}
+                    y1={start.y}
+                    x2={end.x}
+                    y2={end.y}
+                    style={stroke ? { stroke } : undefined}
+                    pointerEvents="none"
+                  />
+                  {assignment ? (
+                    (() => {
+                      const label = `E${element.id} · ${assignment.name}`
+                      const width = Math.min(190, Math.max(90, label.length * 7.1))
+                      return (
+                        <g className="assignment-badge" pointerEvents="none">
+                          <rect
+                            x={midpoint.x - width / 2}
+                            y={midpoint.y - 28}
+                            width={width}
+                            height="22"
+                            rx="7"
+                            fill={assignment.assigned ? assignment.color : '#8b95a4'}
+                            opacity="0.92"
+                          />
+                          <text className="assignment-badge-text" x={midpoint.x} y={midpoint.y - 13} textAnchor="middle">
+                            {label}
+                          </text>
+                        </g>
+                      )
+                    })()
+                  ) : (
+                    <text className="element-label" x={midpoint.x + 8} y={midpoint.y - 10}>E{element.id}</text>
+                  )}
                 </g>
               )
             })}
@@ -530,6 +592,22 @@ export function ModelCanvas({
             <div className="empty-canvas-icon"><NearMeIcon fontSize="medium" /></div>
             <strong>Start with a node</strong>
             <span>Choose Node, then click anywhere on the grid. Press ? for the guide.</span>
+          </div>
+        )}
+
+        {assignmentOverlay && (
+          <div className="assignment-map-panel" role="status" aria-live="polite">
+            <div className="assignment-map-header">
+              <strong>{assignmentOverlay === 'material' ? 'Material' : 'Section'} assignment map</strong>
+              <button type="button" onClick={onCloseAssignmentOverlay} aria-label="Close assignment map">Close</button>
+            </div>
+            <p>Click anywhere outside Assignment to dismiss.</p>
+            <div className="assignment-map-legend">
+              {assignmentLegend.map((item) => (
+                <span key={item.id}><i style={{ background: item.color }} />{item.name}</span>
+              ))}
+              <span><i style={{ background: '#9aa5b5' }} />Unassigned</span>
+            </div>
           </div>
         )}
 

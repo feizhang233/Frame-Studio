@@ -25,6 +25,7 @@ import type {
   NodalLoadDefaults,
   SectionDefinition,
   SectionShape,
+  Selection,
   SupportDefaults,
   ToolMode,
 } from '../domain/frame'
@@ -84,30 +85,74 @@ function LibraryHeader({
   )
 }
 
+export type AssignmentOverlayKind = 'material' | 'section'
+
 function AssignmentList({
   model,
   assignedId,
   kind,
+  assignmentOverlay,
   onApply,
   onApplyAll,
+  onToggleAssignmentOverlay,
 }: {
   model: FrameModel
   assignedId: string
-  kind: 'material' | 'section'
+  kind: AssignmentOverlayKind
+  assignmentOverlay: AssignmentOverlayKind | null
   onApply: (elementId: number) => void
   onApplyAll: () => void
+  onToggleAssignmentOverlay: (kind: AssignmentOverlayKind) => void
 }) {
+  const resolveName = (id: string | null) => {
+    if (!id) return null
+    if (kind === 'material') return model.materials.find((item) => item.id === id)?.name ?? id
+    return model.sections.find((item) => item.id === id)?.name ?? id
+  }
+  const overlayActive = assignmentOverlay === kind
+
   return (
-    <section className="library-apply-section">
-      <div className="library-section-title"><div><span>ASSIGNMENT</span><strong>Apply to elements</strong></div><button type="button" onClick={onApplyAll}><CheckIcon sx={{ fontSize: 16 }} /> Apply all</button></div>
+    <section className="library-apply-section" data-assignment-overlay-keep>
+      <div className="library-section-title">
+        <div><span>ASSIGNMENT</span><strong>Apply to elements</strong></div>
+        <div className="library-section-actions">
+          <button
+            type="button"
+            className={`assignment-details-button ${overlayActive ? 'is-active' : ''}`}
+            aria-pressed={overlayActive}
+            onClick={() => onToggleAssignmentOverlay(kind)}
+          >
+            More details
+          </button>
+          <button type="button" onClick={onApplyAll}><CheckIcon sx={{ fontSize: 16 }} /> Apply all</button>
+        </div>
+      </div>
       <div className="element-assignment-list">
         {model.elements.length === 0 && <div className="library-empty-inline">Create an element before assigning properties.</div>}
         {model.elements.map((element) => {
-          const isAssigned = (kind === 'material' ? element.material_id : element.section_id) === assignedId
+          const currentId = kind === 'material' ? element.material_id : element.section_id
+          const isAssignedHere = currentId === assignedId
+          const isAssignedOther = currentId != null && currentId !== assignedId
+          const otherName = isAssignedOther ? resolveName(currentId) : null
+          const className = isAssignedHere ? 'is-assigned' : isAssignedOther ? 'is-assigned-other' : ''
           return (
-            <button key={element.id} type="button" className={isAssigned ? 'is-assigned' : ''} onClick={() => onApply(element.id)}>
+            <button
+              key={element.id}
+              type="button"
+              className={className}
+              title={isAssignedOther ? `Currently ${otherName}. Click to reassign.` : isAssignedHere ? 'Already assigned' : 'Apply selected definition'}
+              onClick={() => onApply(element.id)}
+            >
               <span className="assignment-element">E{element.id}</span>
-              <span>{isAssigned ? <><CheckIcon sx={{ fontSize: 14 }} /> Assigned</> : 'Apply'}</span>
+              <span>
+                {isAssignedHere ? (
+                  <><CheckIcon sx={{ fontSize: 14 }} /> Assigned</>
+                ) : isAssignedOther ? (
+                  otherName
+                ) : (
+                  'Apply'
+                )}
+              </span>
             </button>
           )
         })}
@@ -116,15 +161,64 @@ function AssignmentList({
   )
 }
 
+function LibrarySelectBar({
+  items,
+  selectedId,
+  onSelect,
+  onAdd,
+  addLabel,
+  ariaLabel,
+}: {
+  items: Array<{ id: string; name: string; color: string }>
+  selectedId: string
+  onSelect: (id: string) => void
+  onAdd: () => void
+  addLabel: string
+  ariaLabel: string
+}) {
+  const selected = items.find((item) => item.id === selectedId)
+  return (
+    <div className="library-select-bar">
+      <label className="library-select-field">
+        <span className="library-select-swatch" style={{ background: selected?.color ?? '#9aa5b5' }} aria-hidden="true" />
+        <select
+          aria-label={ariaLabel}
+          value={selectedId}
+          onChange={(event) => onSelect(event.target.value)}
+          disabled={items.length === 0}
+        >
+          {items.length === 0 && <option value="">No definitions yet</option>}
+          {items.map((item) => (
+            <option key={item.id} value={item.id}>{item.name}</option>
+          ))}
+        </select>
+      </label>
+      <button className="library-add-button" type="button" onClick={onAdd} aria-label={addLabel} title={addLabel}>
+        <AddIcon fontSize="small" />
+      </button>
+    </div>
+  )
+}
+
 interface LibraryPanelProps {
   model: FrameModel
   dispatch: Dispatch<ModelAction>
   elementDefaults: ElementDefaults
+  assignmentOverlay: AssignmentOverlayKind | null
   onElementDefaultsChange: (value: ElementDefaults) => void
+  onToggleAssignmentOverlay: (kind: AssignmentOverlayKind) => void
   onToggleCollapsed: () => void
 }
 
-export function MaterialLibraryPanel({ model, dispatch, elementDefaults, onElementDefaultsChange, onToggleCollapsed }: LibraryPanelProps) {
+export function MaterialLibraryPanel({
+  model,
+  dispatch,
+  elementDefaults,
+  assignmentOverlay,
+  onElementDefaultsChange,
+  onToggleAssignmentOverlay,
+  onToggleCollapsed,
+}: LibraryPanelProps) {
   const [selectedId, setSelectedId] = useState(model.materials[0]?.id ?? '')
   useEffect(() => {
     if (!model.materials.some((item) => item.id === selectedId)) setSelectedId(model.materials[0]?.id ?? '')
@@ -154,10 +248,14 @@ export function MaterialLibraryPanel({ model, dispatch, elementDefaults, onEleme
   return (
     <aside className="properties-panel library-panel">
       <LibraryHeader icon={<LibraryBooksIcon fontSize="small" />} eyebrow="PROPERTY LIBRARY" title="Materials" subtitle={`${model.materials.length} defined`} onToggleCollapsed={onToggleCollapsed} />
-      <div className="library-tabs" role="tablist" aria-label="Material definitions">
-        {model.materials.map((material) => <button key={material.id} type="button" role="tab" aria-selected={material.id === selectedId} className={material.id === selectedId ? 'is-active' : ''} onClick={() => setSelectedId(material.id)}><i style={{ background: material.color }} />{material.name}</button>)}
-        <button className="library-add-tab" type="button" onClick={addMaterial} aria-label="Add material" title="Add material"><AddIcon fontSize="small" /></button>
-      </div>
+      <LibrarySelectBar
+        items={model.materials}
+        selectedId={selectedId}
+        onSelect={setSelectedId}
+        onAdd={addMaterial}
+        addLabel="Add material"
+        ariaLabel="Select material definition"
+      />
       <div className="properties-scroll library-scroll">
         {!selected ? <div className="library-empty">Add a material to begin.</div> : <>
           <section className="library-editor-card">
@@ -168,7 +266,15 @@ export function MaterialLibraryPanel({ model, dispatch, elementDefaults, onEleme
             <label className="library-field"><span>Poisson ratio ν</span><span><input type="number" step="0.01" value={selected.poisson} onChange={(event) => dispatch({ type: 'updateMaterial', id: selected.id, patch: { poisson: Number(event.target.value) } })} /><small>—</small></span></label>
             <button className={`use-default-button ${elementDefaults.materialId === selected.id ? 'is-active' : ''}`} type="button" onClick={() => onElementDefaultsChange({ ...elementDefaults, materialId: selected.id })}><CheckIcon sx={{ fontSize: 16 }} /> {elementDefaults.materialId === selected.id ? 'Default for new elements' : 'Use for new elements'}</button>
           </section>
-          <AssignmentList model={model} assignedId={selected.id} kind="material" onApply={apply} onApplyAll={() => model.elements.forEach((element) => apply(element.id))} />
+          <AssignmentList
+            model={model}
+            assignedId={selected.id}
+            kind="material"
+            assignmentOverlay={assignmentOverlay}
+            onApply={apply}
+            onApplyAll={() => model.elements.forEach((element) => apply(element.id))}
+            onToggleAssignmentOverlay={onToggleAssignmentOverlay}
+          />
         </>}
       </div>
     </aside>
@@ -183,7 +289,15 @@ const sectionShapes: Array<{ id: SectionShape; label: string }> = [
   { id: 'tube', label: 'Tube' },
 ]
 
-export function SectionLibraryPanel({ model, dispatch, elementDefaults, onElementDefaultsChange, onToggleCollapsed }: LibraryPanelProps) {
+export function SectionLibraryPanel({
+  model,
+  dispatch,
+  elementDefaults,
+  assignmentOverlay,
+  onElementDefaultsChange,
+  onToggleAssignmentOverlay,
+  onToggleCollapsed,
+}: LibraryPanelProps) {
   const [selectedId, setSelectedId] = useState(model.sections[0]?.id ?? '')
   useEffect(() => {
     if (!model.sections.some((item) => item.id === selectedId)) setSelectedId(model.sections[0]?.id ?? '')
@@ -213,10 +327,14 @@ export function SectionLibraryPanel({ model, dispatch, elementDefaults, onElemen
   return (
     <aside className="properties-panel library-panel">
       <LibraryHeader icon={<CategoryIcon fontSize="small" />} eyebrow="PROPERTY LIBRARY" title="Sections" subtitle={`${model.sections.length} defined`} onToggleCollapsed={onToggleCollapsed} />
-      <div className="library-tabs" role="tablist" aria-label="Section definitions">
-        {model.sections.map((section) => <button key={section.id} type="button" role="tab" aria-selected={section.id === selectedId} className={section.id === selectedId ? 'is-active' : ''} onClick={() => setSelectedId(section.id)}><i style={{ background: section.color }} />{section.name}</button>)}
-        <button className="library-add-tab" type="button" onClick={addSection} aria-label="Add section" title="Add section"><AddIcon fontSize="small" /></button>
-      </div>
+      <LibrarySelectBar
+        items={model.sections}
+        selectedId={selectedId}
+        onSelect={setSelectedId}
+        onAdd={addSection}
+        addLabel="Add section"
+        ariaLabel="Select section definition"
+      />
       <div className="properties-scroll library-scroll">
         {!selected ? <div className="library-empty">Add a section to begin.</div> : <>
           <section className="library-editor-card">
@@ -227,7 +345,15 @@ export function SectionLibraryPanel({ model, dispatch, elementDefaults, onElemen
             <LibraryNumberField label="Second moment I" value={selected.I} unit="m⁴" onChange={(I) => dispatch({ type: 'updateSection', id: selected.id, patch: { I } })} />
             <button className={`use-default-button ${elementDefaults.sectionId === selected.id ? 'is-active' : ''}`} type="button" onClick={() => onElementDefaultsChange({ ...elementDefaults, sectionId: selected.id })}><CheckIcon sx={{ fontSize: 16 }} /> {elementDefaults.sectionId === selected.id ? 'Default for new elements' : 'Use for new elements'}</button>
           </section>
-          <AssignmentList model={model} assignedId={selected.id} kind="section" onApply={apply} onApplyAll={() => model.elements.forEach((element) => apply(element.id))} />
+          <AssignmentList
+            model={model}
+            assignedId={selected.id}
+            kind="section"
+            assignmentOverlay={assignmentOverlay}
+            onApply={apply}
+            onApplyAll={() => model.elements.forEach((element) => apply(element.id))}
+            onToggleAssignmentOverlay={onToggleAssignmentOverlay}
+          />
         </>}
       </div>
     </aside>
@@ -357,37 +483,99 @@ export function ToolSetupPanel({
   elementDefaults,
   supportDefaults,
   nodalLoadDefaults,
+  dispatch,
   onElementDefaultsChange,
   onSupportDefaultsChange,
   onNodalLoadDefaultsChange,
   onToolChange,
   onToggleCollapsed,
+  onSelectionChange,
 }: {
   tool: ToolMode
   model: FrameModel
   elementDefaults: ElementDefaults
   supportDefaults: SupportDefaults
   nodalLoadDefaults: NodalLoadDefaults
+  dispatch: Dispatch<ModelAction>
   onElementDefaultsChange: (value: ElementDefaults) => void
   onSupportDefaultsChange: (value: SupportDefaults) => void
   onNodalLoadDefaultsChange: (value: NodalLoadDefaults) => void
   onToolChange: (tool: ToolMode) => void
   onToggleCollapsed: () => void
+  onSelectionChange: (selection: Selection) => void
 }) {
+  const [nodeX, setNodeX] = useState('0')
+  const [nodeY, setNodeY] = useState('0')
+
   const definitions = {
-    node: { icon: <FiberManualRecordIcon fontSize="small" />, eyebrow: 'CREATE TOOL', title: 'Node', description: 'Click on the grid to place a node. Coordinates snap to 0.25 m.' },
+    node: { icon: <FiberManualRecordIcon fontSize="small" />, eyebrow: 'CREATE TOOL', title: 'Node', description: 'Enter coordinates below, or click the grid to place a node. Coordinates snap to 0.25 m.' },
     element: { icon: <AccountTreeIcon fontSize="small" />, eyebrow: 'CREATE TOOL', title: 'Element', description: 'Select an i-node and j-node to create a frame element.' },
     support: { icon: <ChangeHistoryIcon fontSize="small" />, eyebrow: 'CREATE TOOL', title: 'Support', description: 'Choose a support type, then click a node to assign it.' },
     load: { icon: <SouthIcon fontSize="small" />, eyebrow: 'CREATE TOOL', title: 'Load', description: 'Click a node for a nodal load or an element for a distributed load.' },
   } as const
   if (!(tool in definitions)) return null
   const definition = definitions[tool as keyof typeof definitions]
+
+  const snapCoord = (value: number, step = 0.25) => Math.round(value / step) * step
+
+  const placeNodeAtCoordinates = () => {
+    const x = Number(nodeX)
+    const y = Number(nodeY)
+    if (!Number.isFinite(x) || !Number.isFinite(y)) return
+    const id = Math.max(0, ...model.nodes.map((node) => node.id)) + 1
+    const node = { id, x: snapCoord(x), y: snapCoord(y) }
+    dispatch({ type: 'addNode', node })
+    onSelectionChange({ type: 'node', id: node.id })
+    setNodeX(String(node.x))
+    setNodeY(String(node.y))
+  }
+
   return (
     <aside className="properties-panel tool-setup-panel">
       <LibraryHeader icon={definition.icon} eyebrow={definition.eyebrow} title={definition.title} subtitle="Defaults" onToggleCollapsed={onToggleCollapsed} />
       <div className="properties-scroll">
         <div className="tool-setup-intro"><strong>{definition.title} placement</strong><span>{definition.description}</span></div>
-        {tool === 'node' && <section className="tool-default-card"><span>GRID & SNAP</span><div className="tool-readout"><b>0.25</b><small>m increment</small></div><div className="tool-check"><CheckIcon sx={{ fontSize: 16 }} /> Global X / Y coordinates</div></section>}
+        {tool === 'node' && (
+          <section className="tool-default-card">
+            <span>PLACE BY COORDINATES</span>
+            <div className="node-coord-fields">
+              <label>
+                Global X
+                <span>
+                  <input
+                    type="text"
+                    inputMode="decimal"
+                    value={nodeX}
+                    onChange={(event) => setNodeX(event.target.value)}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter') placeNodeAtCoordinates()
+                    }}
+                  />
+                  <small>m</small>
+                </span>
+              </label>
+              <label>
+                Global Y
+                <span>
+                  <input
+                    type="text"
+                    inputMode="decimal"
+                    value={nodeY}
+                    onChange={(event) => setNodeY(event.target.value)}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter') placeNodeAtCoordinates()
+                    }}
+                  />
+                  <small>m</small>
+                </span>
+              </label>
+            </div>
+            <button className="place-node-button" type="button" onClick={placeNodeAtCoordinates}>
+              <AddIcon sx={{ fontSize: 16 }} /> Add node
+            </button>
+            <div className="tool-check"><CheckIcon sx={{ fontSize: 16 }} /> Snap 0.25 m · or click the canvas</div>
+          </section>
+        )}
         {tool === 'element' && <section className="tool-default-card"><span>NEW ELEMENT ASSIGNMENTS</span><label>Material<select value={elementDefaults.materialId ?? ''} onChange={(event) => onElementDefaultsChange({ ...elementDefaults, materialId: event.target.value || null })}><option value="">Unassigned</option>{model.materials.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label><label>Section<select value={elementDefaults.sectionId ?? ''} onChange={(event) => onElementDefaultsChange({ ...elementDefaults, sectionId: event.target.value || null })}><option value="">Unassigned</option>{model.sections.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label><div className="tool-default-actions"><button type="button" onClick={() => onToolChange('material')}>Open Materials</button><button type="button" onClick={() => onToolChange('section')}>Open Sections</button></div></section>}
         {tool === 'support' && (
           <section className="tool-default-card">

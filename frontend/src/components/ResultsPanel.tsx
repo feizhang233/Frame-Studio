@@ -41,9 +41,12 @@ interface ResultsPanelProps {
   activeTab: ResultTab
   isRunning: boolean
   isExpanded: boolean
+  isMinimized: boolean
   error: string | null
   onTabChange: (tab: ResultTab) => void
   onToggleExpanded: () => void
+  onOpen: () => void
+  onMinimize: () => void
   onRun: () => void
 }
 
@@ -205,13 +208,44 @@ export function ResultsPanel({
   activeTab,
   isRunning,
   isExpanded,
+  isMinimized,
   error,
   onTabChange,
   onToggleExpanded,
+  onOpen,
+  onMinimize,
   onRun,
 }: ResultsPanelProps) {
   const showDiagram = isExpanded && isFieldResultTab(activeTab)
   const tabIndex = Math.max(0, resultTabs.findIndex((tab) => tab.id === activeTab))
+  const canMinimize = !result && !isRunning && !error
+
+  if (isMinimized) {
+    return (
+      <Box
+        component="section"
+        aria-label="Analysis results"
+        sx={{
+          height: '100%',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          bgcolor: 'grey.50',
+        }}
+      >
+        <Button
+          size="small"
+          variant="outlined"
+          color="inherit"
+          onClick={onOpen}
+          startIcon={<UnfoldMoreIcon />}
+          sx={{ minWidth: 140 }}
+        >
+          Results
+        </Button>
+      </Box>
+    )
+  }
 
   return (
     <Box
@@ -276,12 +310,18 @@ export function ResultsPanel({
           size="small"
           variant="outlined"
           color="inherit"
-          onClick={onToggleExpanded}
-          startIcon={isExpanded ? <UnfoldLessIcon /> : <UnfoldMoreIcon />}
+          onClick={() => {
+            if (canMinimize && !isExpanded) {
+              onMinimize()
+              return
+            }
+            onToggleExpanded()
+          }}
+          startIcon={isExpanded || canMinimize ? <UnfoldLessIcon /> : <UnfoldMoreIcon />}
           sx={{ flexShrink: 0, display: { xs: 'inline-flex', sm: 'inline-flex' } }}
         >
           <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}>
-            {isExpanded ? 'Compact' : 'Expand'}
+            {isExpanded ? 'Compact' : canMinimize ? 'Hide' : 'Expand'}
           </Box>
         </Button>
       </Stack>

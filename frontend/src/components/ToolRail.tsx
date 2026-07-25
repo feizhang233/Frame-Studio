@@ -76,11 +76,16 @@ function ToolButton({
         onClick={onClick}
         aria-pressed={active}
         sx={{
+          flex: '0 0 auto',
           flexDirection: 'column',
+          justifyContent: 'center',
+          alignItems: 'center',
           py: 1.25,
           px: 0.5,
           borderRadius: 2,
           minHeight: 64,
+          maxHeight: 72,
+          height: 64,
           '&.Mui-selected': {
             bgcolor: 'primary.main',
             color: 'primary.contrastText',
@@ -89,16 +94,18 @@ function ToolButton({
           },
         }}
       >
-        <ListItemIcon sx={{ minWidth: 0, justifyContent: 'center', color: 'inherit' }}>
+        <ListItemIcon sx={{ minWidth: 0, justifyContent: 'center', color: 'inherit', flex: '0 0 auto' }}>
           <Icon fontSize="small" />
         </ListItemIcon>
         <ListItemText
           primary={tool.label}
+          sx={{ flex: '0 0 auto', margin: 0, mt: 0.5 }}
           primaryTypographyProps={{
             variant: 'caption',
             fontWeight: 600,
             textAlign: 'center',
-            sx: { mt: 0.5, lineHeight: 1.2 },
+            noWrap: true,
+            sx: { lineHeight: 1.2 },
           }}
         />
       </ListItemButton>
@@ -113,6 +120,8 @@ export function ToolRail({ activeTool, onToolChange }: ToolRailProps) {
       aria-label="Modeling tools"
       sx={{
         width: { xs: 64, sm: 88 },
+        height: '100%',
+        flex: '1 1 auto',
         flexShrink: 0,
         display: 'flex',
         flexDirection: 'column',
@@ -122,6 +131,7 @@ export function ToolRail({ activeTool, onToolChange }: ToolRailProps) {
         py: 1.5,
         px: 0.75,
         minHeight: 0,
+        overflow: 'hidden',
       }}
     >
       <Typography
@@ -133,11 +143,23 @@ export function ToolRail({ activeTool, onToolChange }: ToolRailProps) {
           fontWeight: 700,
           letterSpacing: 0.12,
           mb: 1,
+          flex: '0 0 auto',
         }}
       >
         MODEL
       </Typography>
-      <List disablePadding sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, flex: 1 }}>
+      <List
+        disablePadding
+        sx={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 0.5,
+          flex: '1 1 auto',
+          minHeight: 0,
+          overflowY: 'auto',
+          overflowX: 'hidden',
+        }}
+      >
         {tools.map((tool) => (
           <ToolButton
             key={tool.id}
@@ -147,12 +169,14 @@ export function ToolRail({ activeTool, onToolChange }: ToolRailProps) {
           />
         ))}
       </List>
-      <Divider sx={{ my: 1 }} />
-      <ToolButton
-        tool={modelTool}
-        active={activeTool === 'models'}
-        onClick={() => onToolChange('models')}
-      />
+      <Box sx={{ flex: '0 0 auto', pt: 1, mt: 'auto' }}>
+        <Divider sx={{ mb: 1 }} />
+        <ToolButton
+          tool={modelTool}
+          active={activeTool === 'models'}
+          onClick={() => onToolChange('models')}
+        />
+      </Box>
     </Box>
   )
 }
