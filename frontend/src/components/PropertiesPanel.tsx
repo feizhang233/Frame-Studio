@@ -1,16 +1,14 @@
-import {
-  Activity,
-  ArrowDownToLine,
-  Brackets,
-  CircleDot,
-  Info,
-  PanelLeftOpen,
-  Settings2,
-  Triangle,
-  Trash2,
-  Waypoints,
-  X,
-} from 'lucide-react'
+import AccountTreeIcon from '@mui/icons-material/AccountTree'
+import ChangeHistoryIcon from '@mui/icons-material/ChangeHistory'
+import CloseIcon from '@mui/icons-material/Close'
+import DataObjectIcon from '@mui/icons-material/DataObject'
+import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline'
+import FiberManualRecordIcon from '@mui/icons-material/FiberManualRecord'
+import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined'
+import KeyboardDoubleArrowRightIcon from '@mui/icons-material/KeyboardDoubleArrowRight'
+import ShowChartIcon from '@mui/icons-material/ShowChart'
+import SouthIcon from '@mui/icons-material/South'
+import TuneIcon from '@mui/icons-material/Tune'
 import { useEffect, useState, type Dispatch, type ReactNode } from 'react'
 import type { ExampleModelDefinition } from '../data/exampleModel'
 import { SUPPORT_PRESETS } from '../data/supportPresets'
@@ -153,7 +151,7 @@ function PanelHeader({
           <h2>{title}</h2>
         </div>
       </div>
-      {onClose && <button type="button" onClick={onClose} aria-label="清除選取"><X size={18} /></button>}
+      {onClose && <button type="button" onClick={onClose} aria-label="Clear selection"><CloseIcon fontSize="small" /></button>}
     </div>
   )
 }
@@ -161,7 +159,7 @@ function PanelHeader({
 function DeleteButton({ onClick, label }: { onClick: () => void; label: string }) {
   return (
     <button className="delete-button" type="button" onClick={onClick}>
-      <Trash2 size={17} />
+      <DeleteOutlineIcon fontSize="small" />
       {label}
     </button>
   )
@@ -202,7 +200,7 @@ export function PropertiesPanel({
     return (
       <aside className="properties-panel properties-panel--collapsed">
         <button className="properties-collapse-trigger" type="button" onClick={onToggleCollapsed} aria-label="Open Properties">
-          <PanelLeftOpen size={19} />
+          <KeyboardDoubleArrowRightIcon fontSize="small" />
           <span>Properties</span>
         </button>
       </aside>
@@ -225,10 +223,10 @@ export function PropertiesPanel({
   if (!selection) {
     return (
       <aside className="properties-panel">
-        <PanelHeader icon={<Settings2 size={19} />} eyebrow="WORKSPACE" title="Properties" onToggleCollapsed={onToggleCollapsed} />
+        <PanelHeader icon={<TuneIcon fontSize="small" />} eyebrow="WORKSPACE" title="Properties" onToggleCollapsed={onToggleCollapsed} />
         <div className="properties-scroll">
           <div className="model-overview-card">
-            <div className="overview-orbit"><Brackets size={25} /></div>
+            <div className="overview-orbit"><DataObjectIcon /></div>
             <strong>{model.name}</strong>
             <span>SI units · Linear static</span>
             <div className="overview-stats">
@@ -250,7 +248,7 @@ export function PropertiesPanel({
               onChange={(deformation_scale) => dispatch({ type: 'updateOptions', patch: { deformation_scale } })}
             />
           </PropertySection>
-          <div className="properties-tip"><Info size={16} /><span>Select an object on the canvas to edit its parameters.</span></div>
+          <div className="properties-tip"><InfoOutlinedIcon fontSize="small" /><span>Select an object on the canvas to edit its parameters. Press ? for the full guide.</span></div>
         </div>
       </aside>
     )
@@ -262,7 +260,7 @@ export function PropertiesPanel({
     const connectedElements = model.elements.filter((item) => item.node_i === node.id || item.node_j === node.id)
     return (
       <aside className="properties-panel">
-        <PanelHeader icon={<CircleDot size={19} />} eyebrow="NODE" title={`N${node.id}`} onClose={close} onToggleCollapsed={onToggleCollapsed} />
+        <PanelHeader icon={<FiberManualRecordIcon fontSize="small" />} eyebrow="NODE" title={`N${node.id}`} onClose={close} onToggleCollapsed={onToggleCollapsed} />
         <div className="properties-scroll">
           <PropertySection title="Coordinates">
             <NumberField label="Global X" value={node.x} unit="m" onChange={(x) => dispatch({ type: 'updateNode', id: node.id, patch: { x } })} />
@@ -284,7 +282,7 @@ export function PropertiesPanel({
     const properties = getElementProperties(model, element)
     return (
       <aside className="properties-panel">
-        <PanelHeader icon={<Waypoints size={19} />} eyebrow="FRAME ELEMENT" title={`E${element.id}`} onClose={close} onToggleCollapsed={onToggleCollapsed} />
+        <PanelHeader icon={<AccountTreeIcon fontSize="small" />} eyebrow="FRAME ELEMENT" title={`E${element.id}`} onClose={close} onToggleCollapsed={onToggleCollapsed} />
         <div className="properties-scroll">
           <PropertySection title="Connectivity">
             <label className="property-field"><span>Start node</span><select value={element.node_i} onChange={(event) => dispatch({ type: 'updateElement', id: element.id, patch: { node_i: Number(event.target.value) } })}>{model.nodes.map((node) => <option key={node.id} value={node.id}>N{node.id}</option>)}</select></label>
@@ -316,7 +314,7 @@ export function PropertiesPanel({
     ]
     return (
       <aside className="properties-panel">
-        <PanelHeader icon={<Triangle size={19} />} eyebrow="SUPPORT" title={`N${support.node_id}`} onClose={close} onToggleCollapsed={onToggleCollapsed} />
+        <PanelHeader icon={<ChangeHistoryIcon fontSize="small" />} eyebrow="SUPPORT" title={`N${support.node_id}`} onClose={close} onToggleCollapsed={onToggleCollapsed} />
         <div className="properties-scroll">
           <PropertySection title="Support type">
             <div className="support-presets">
@@ -348,7 +346,7 @@ export function PropertiesPanel({
           </PropertySection>
           <PropertySection title="Support orientation">
             <NumberField label="Local u′ axis angle" value={support.angle} unit="deg" onChange={(angle) => dispatch({ type: 'updateSupport', nodeId: support.node_id, patch: { angle } })} />
-            <div className="properties-tip"><Info size={16} /><span>Positive angle rotates the local u′ axis counter-clockwise from global +X.</span></div>
+            <div className="properties-tip"><InfoOutlinedIcon fontSize="small" /><span>Positive angle rotates the local u′ axis counter-clockwise from global +X.</span></div>
           </PropertySection>
           <PropertySection title="Restrained DOF">
             <div className="restraint-grid">
@@ -390,14 +388,14 @@ export function PropertiesPanel({
     if (!load) return null
     return (
       <aside className="properties-panel">
-        <PanelHeader icon={<ArrowDownToLine size={19} />} eyebrow="NODAL LOAD" title={`N${load.node_id}`} onClose={close} onToggleCollapsed={onToggleCollapsed} />
+        <PanelHeader icon={<SouthIcon fontSize="small" />} eyebrow="NODAL LOAD" title={`N${load.node_id}`} onClose={close} onToggleCollapsed={onToggleCollapsed} />
         <div className="properties-scroll">
           <PropertySection title="Global components">
             <NumberField label="Force Fx" value={load.fx} unit="N" onChange={(fx) => dispatch({ type: 'updateNodalLoad', nodeId: load.node_id, patch: { fx } })} />
             <NumberField label="Force Fy" value={load.fy} unit="N" onChange={(fy) => dispatch({ type: 'updateNodalLoad', nodeId: load.node_id, patch: { fy } })} />
             <NumberField label="Moment Mz" value={load.mz} unit="N·m" onChange={(mz) => dispatch({ type: 'updateNodalLoad', nodeId: load.node_id, patch: { mz } })} />
           </PropertySection>
-          <div className="properties-tip"><Activity size={16} /><span>Positive moment acts counter-clockwise about +Z.</span></div>
+          <div className="properties-tip"><ShowChartIcon fontSize="small" /><span>Positive moment acts counter-clockwise about +Z.</span></div>
           <DeleteButton label="Delete load" onClick={() => deleteEntity('nodalLoad', load.node_id)} />
         </div>
       </aside>
@@ -408,7 +406,7 @@ export function PropertiesPanel({
   if (!load) return null
   return (
     <aside className="properties-panel">
-      <PanelHeader icon={<ArrowDownToLine size={19} />} eyebrow="DISTRIBUTED LOAD" title={`E${load.element_id}`} onClose={close} onToggleCollapsed={onToggleCollapsed} />
+      <PanelHeader icon={<SouthIcon fontSize="small" />} eyebrow="DISTRIBUTED LOAD" title={`E${load.element_id}`} onClose={close} onToggleCollapsed={onToggleCollapsed} />
       <div className="properties-scroll">
         <PropertySection title="Local i-end">
           <NumberField label="Axial qx,i" value={load.qx_i} unit="N/m" onChange={(qx_i) => dispatch({ type: 'updateDistributedLoad', elementId: load.element_id, patch: { qx_i } })} />
@@ -418,7 +416,7 @@ export function PropertiesPanel({
           <NumberField label="Axial qx,j" value={load.qx_j} unit="N/m" onChange={(qx_j) => dispatch({ type: 'updateDistributedLoad', elementId: load.element_id, patch: { qx_j } })} />
           <NumberField label="Transverse qy,j" value={load.qy_j} unit="N/m" onChange={(qy_j) => dispatch({ type: 'updateDistributedLoad', elementId: load.element_id, patch: { qy_j } })} />
         </PropertySection>
-        <div className="properties-tip"><Activity size={16} /><span>Components follow each element’s local +x / +y axes.</span></div>
+        <div className="properties-tip"><ShowChartIcon fontSize="small" /><span>Components follow each element’s local +x / +y axes.</span></div>
         <DeleteButton label="Delete load" onClick={() => deleteEntity('distributedLoad', load.element_id)} />
       </div>
     </aside>

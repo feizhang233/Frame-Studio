@@ -1,4 +1,13 @@
-import { Grid3X3, Maximize2, Minus, MousePointer2, Plus } from 'lucide-react'
+import AddIcon from '@mui/icons-material/Add'
+import FitScreenIcon from '@mui/icons-material/FitScreen'
+import GridOnIcon from '@mui/icons-material/GridOn'
+import NearMeIcon from '@mui/icons-material/NearMe'
+import RemoveIcon from '@mui/icons-material/Remove'
+import Chip from '@mui/material/Chip'
+import IconButton from '@mui/material/IconButton'
+import Paper from '@mui/material/Paper'
+import Stack from '@mui/material/Stack'
+import Typography from '@mui/material/Typography'
 import {
   useMemo,
   useRef,
@@ -303,22 +312,33 @@ export function ModelCanvas({
                   : 'Drag nodes to edit · drag canvas to pan'
 
   return (
-    <section className="canvas-panel" aria-label="結構模型畫布">
-      <div className="canvas-topbar">
-        <div className="canvas-context">
-          <span className="eyebrow">MODEL SPACE</span>
-          <span className="canvas-model-name">{model.name}</span>
-          <span className="count-chip">{model.nodes.length} nodes</span>
-          <span className="count-chip">{model.elements.length} elements</span>
-        </div>
-        <div className="canvas-controls" aria-label="畫布檢視">
-          <button type="button" onClick={() => zoom(0.85)} aria-label="縮小"><Minus size={17} /></button>
-          <span className="zoom-value">{Math.round((view.scale / 92) * 100)}%</span>
-          <button type="button" onClick={() => zoom(1.18)} aria-label="放大"><Plus size={17} /></button>
-          <span className="control-divider" />
-          <button type="button" onClick={fitModel} aria-label="符合畫面"><Maximize2 size={17} /></button>
-        </div>
-      </div>
+    <section className="canvas-panel" aria-label="Structural model canvas" style={{ height: '100%', display: 'grid', gridTemplateRows: 'auto minmax(0, 1fr)' }}>
+      <Stack
+        direction="row"
+        alignItems="center"
+        justifyContent="space-between"
+        spacing={1}
+        sx={{ px: 1.5, py: 0.75, borderBottom: 1, borderColor: 'divider', minHeight: 52, bgcolor: 'background.paper' }}
+      >
+        <Stack direction="row" alignItems="center" spacing={1} sx={{ minWidth: 0 }}>
+          <Typography variant="caption" color="text.secondary" fontWeight={700} sx={{ display: { xs: 'none', sm: 'inline' } }}>
+            MODEL SPACE
+          </Typography>
+          <Typography variant="body2" fontWeight={600} noWrap sx={{ maxWidth: 200 }}>
+            {model.name}
+          </Typography>
+          <Chip size="small" label={`${model.nodes.length} nodes`} variant="outlined" />
+          <Chip size="small" label={`${model.elements.length} elements`} variant="outlined" sx={{ display: { xs: 'none', md: 'inline-flex' } }} />
+        </Stack>
+        <Paper variant="outlined" sx={{ display: 'flex', alignItems: 'center', px: 0.5 }} aria-label="Canvas view controls">
+          <IconButton size="small" onClick={() => zoom(0.85)} aria-label="Zoom out"><RemoveIcon fontSize="small" /></IconButton>
+          <Typography variant="caption" sx={{ minWidth: 40, textAlign: 'center', fontWeight: 600 }}>
+            {Math.round((view.scale / 92) * 100)}%
+          </Typography>
+          <IconButton size="small" onClick={() => zoom(1.18)} aria-label="Zoom in"><AddIcon fontSize="small" /></IconButton>
+          <IconButton size="small" onClick={fitModel} aria-label="Fit to view"><FitScreenIcon fontSize="small" /></IconButton>
+        </Paper>
+      </Stack>
 
       <div className={`canvas-stage canvas-stage--${tool}`}>
         <svg
@@ -507,13 +527,13 @@ export function ModelCanvas({
 
         {model.nodes.length === 0 && (
           <div className="empty-canvas">
-            <div className="empty-canvas-icon"><MousePointer2 size={22} /></div>
+            <div className="empty-canvas-icon"><NearMeIcon fontSize="medium" /></div>
             <strong>Start with a node</strong>
-            <span>Choose Node, then click anywhere on the grid.</span>
+            <span>Choose Node, then click anywhere on the grid. Press ? for the guide.</span>
           </div>
         )}
 
-        <div className="canvas-hint"><Grid3X3 size={15} /> {toolHint}</div>
+        <div className="canvas-hint"><GridOnIcon sx={{ fontSize: 16 }} /> {toolHint}</div>
         <div className="cursor-position">X {formatNumber(cursor.x, 2)} m&nbsp;&nbsp; Y {formatNumber(cursor.y, 2)} m</div>
       </div>
     </section>

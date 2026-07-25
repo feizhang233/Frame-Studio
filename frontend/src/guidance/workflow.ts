@@ -1,0 +1,202 @@
+import type { FrameModel, ToolMode } from '../domain/frame'
+
+/** Modeling workflow stages shown in the progress stepper and onboarding. */
+export interface WorkflowStep {
+  id: string
+  label: string
+  shortLabel: string
+  tool: ToolMode
+  description: string
+  howTo: string
+  shortcut?: string
+}
+
+export const WORKFLOW_STEPS: WorkflowStep[] = [
+  {
+    id: 'nodes',
+    label: 'Place nodes',
+    shortLabel: 'Nodes',
+    tool: 'node',
+    description: 'Define joint locations in the global XY plane.',
+    howTo: 'Select Node (N), then click the canvas. Coordinates snap to 0.25 m.',
+    shortcut: 'N',
+  },
+  {
+    id: 'materials',
+    label: 'Define materials',
+    shortLabel: 'Material',
+    tool: 'material',
+    description: 'Create material cards with elastic modulus E.',
+    howTo: 'Open Material (M), edit E, then assign to elements when ready.',
+    shortcut: 'M',
+  },
+  {
+    id: 'sections',
+    label: 'Define sections',
+    shortLabel: 'Section',
+    tool: 'section',
+    description: 'Create section cards with area A and inertia I.',
+    howTo: 'Open Section (C), set A and I (or pick a shape), then assign later.',
+    shortcut: 'C',
+  },
+  {
+    id: 'elements',
+    label: 'Connect elements',
+    shortLabel: 'Elements',
+    tool: 'element',
+    description: 'Create frame members between two nodes.',
+    howTo: 'Select Element (E), click start node, then end node.',
+    shortcut: 'E',
+  },
+  {
+    id: 'supports',
+    label: 'Add supports',
+    shortLabel: 'Supports',
+    tool: 'support',
+    description: 'Restrain degrees of freedom at supports.',
+    howTo: 'Select Support (S), pick a preset, then click a node.',
+    shortcut: 'S',
+  },
+  {
+    id: 'loads',
+    label: 'Apply loads',
+    shortLabel: 'Loads',
+    tool: 'load',
+    description: 'Apply nodal forces/moments or distributed loads.',
+    howTo: 'Select Load (L), set defaults, then click a node or element.',
+    shortcut: 'L',
+  },
+  {
+    id: 'analyze',
+    label: 'Run analysis',
+    shortLabel: 'Analyze',
+    tool: 'select',
+    description: 'Solve the model and inspect displacements, reactions, and N/V/M.',
+    howTo: 'Assign material & section on every element, then click Run Analysis.',
+  },
+]
+
+export interface ToolHint {
+  title: string
+  body: string
+  tips: string[]
+}
+
+export const TOOL_HINTS: Record<ToolMode, ToolHint> = {
+  select: {
+    title: 'Select tool',
+    body: 'Click nodes, elements, supports, or loads to edit properties on the right.',
+    tips: [
+      'Drag empty canvas to pan; use the zoom controls in the canvas toolbar.',
+      'Press V to return to Select from any modeling tool.',
+    ],
+  },
+  node: {
+    title: 'Place nodes',
+    body: 'Click on the canvas to create joints. Coordinates are snapped for tidy models.',
+    tips: [
+      'Edit X/Y in the Properties panel after selecting a node.',
+      'At least two nodes are needed before you can draw an element.',
+    ],
+  },
+  material: {
+    title: 'Material library',
+    body: 'Materials are reusable resources (E). Assign them to elements before analysis.',
+    tips: [
+      'Create or edit material cards here, then apply to one or all elements.',
+      'Missing material on an element blocks Save and Run Analysis.',
+    ],
+  },
+  section: {
+    title: 'Section library',
+    body: 'Sections store A and I. Shape presets help estimate values.',
+    tips: [
+      'Assign sections the same way as materials—per element or all at once.',
+      'Effective E, A, I appear on the element property sheet.',
+    ],
+  },
+  element: {
+    title: 'Draw elements',
+    body: 'Click two nodes in order to create a frame member between them.',
+    tips: [
+      'New elements start unassigned—set Material and Section before analysis.',
+      'You can change start/end nodes later in Properties.',
+    ],
+  },
+  support: {
+    title: 'Add supports',
+    body: 'Choose a support preset, then click a node to attach restraints.',
+    tips: [
+      'Presets: fixed, pin, rollers. Fine-tune DOF and prescribed displacements after.',
+      'Support orientation angle rotates the local u′ axis from global +X.',
+    ],
+  },
+  load: {
+    title: 'Apply loads',
+    body: 'Set default Fx/Fy/Mz, then click a node for a nodal load or an element for distributed load.',
+    tips: [
+      'Positive moment is counter-clockwise about +Z (right-hand rule).',
+      'Distributed loads follow each element’s local axes.',
+    ],
+  },
+  models: {
+    title: 'Models & examples',
+    body: 'Restore recent snapshots or load example frames to learn the workflow.',
+    tips: [
+      'History is synced to the project SQLite database when the API is available.',
+      'Drag a recent model into Examples to keep it as a teaching template.',
+    ],
+  },
+}
+
+/** Index of the first incomplete workflow step (0-based). Analyze is always last. */
+export function getActiveWorkflowIndex(model: FrameModel): number {
+  if (model.nodes.length === 0) return 0
+  if (model.materials.length === 0) return 1
+  if (model.sections.length === 0) return 2
+  if (model.elements.length === 0) return 3
+  if (model.supports.length === 0) return 4
+  const hasLoads =
+    model.nodal_loads.length > 0 || model.distributed_loads.length > 0
+  if (!hasLoads) return 5
+  const unassigned = model.elements.some(
+    (el) => el.material_id == null || el.section_id == null
+      || el.E == null || el.A == null || el.I == null,
+  )
+  // Still on analyze if assignments missing or ready to run
+  if (unassigned) return 6
+  return 6
+}
+
+export function isWorkflowStepComplete(model: FrameModel, stepIndex: number): boolean {
+  switch (stepIndex) {
+    case 0:
+      return model.nodes.length > 0
+    case 1:
+      return model.materials.length > 0
+    case 2:
+      return model.sections.length > 0
+    case 3:
+      return model.elements.length > 0
+    case 4:
+      return model.supports.length > 0
+    case 5:
+      return model.nodal_loads.length > 0 || model.distributed_loads.length > 0
+    case 6:
+      return (
+        model.nodes.length > 0
+        && model.elements.length > 0
+        && model.supports.length > 0
+        && model.elements.every((el) => {
+          const hasMat = el.material_id != null || el.E != null
+          const hasSec = el.section_id != null || (el.A != null && el.I != null)
+          return hasMat && hasSec
+        })
+      )
+    default:
+      return false
+  }
+}
+
+export const ONBOARDING_KEY = 'frame-studio:onboarding-dismissed:v1'
+export const GUIDANCE_VISIBLE_KEY = 'frame-studio:guidance-visible:v1'

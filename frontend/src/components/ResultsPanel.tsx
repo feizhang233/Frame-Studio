@@ -1,4 +1,24 @@
-import { Activity, CheckCircle2, ChevronsDown, ChevronsUp, CircleAlert, Play, Table2 } from 'lucide-react'
+import CheckCircleIcon from '@mui/icons-material/CheckCircle'
+import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline'
+import PlayArrowIcon from '@mui/icons-material/PlayArrow'
+import TableChartIcon from '@mui/icons-material/TableChart'
+import UnfoldLessIcon from '@mui/icons-material/UnfoldLess'
+import UnfoldMoreIcon from '@mui/icons-material/UnfoldMore'
+import Alert from '@mui/material/Alert'
+import Box from '@mui/material/Box'
+import Button from '@mui/material/Button'
+import Chip from '@mui/material/Chip'
+import LinearProgress from '@mui/material/LinearProgress'
+import Stack from '@mui/material/Stack'
+import Tab from '@mui/material/Tab'
+import Table from '@mui/material/Table'
+import TableBody from '@mui/material/TableBody'
+import TableCell from '@mui/material/TableCell'
+import TableContainer from '@mui/material/TableContainer'
+import TableHead from '@mui/material/TableHead'
+import TableRow from '@mui/material/TableRow'
+import Tabs from '@mui/material/Tabs'
+import Typography from '@mui/material/Typography'
 import type { SolveResponse } from '../api/contracts'
 import type { FrameModel } from '../domain/frame'
 import { formatNumber } from '../utils/format'
@@ -29,38 +49,61 @@ interface ResultsPanelProps {
 
 function DisplacementTable({ result }: { result: SolveResponse }) {
   return (
-    <div className="result-table-wrap">
-      <table>
-        <thead><tr><th>Node</th><th>u <small>m</small></th><th>v <small>m</small></th><th>φ <small>rad</small></th><th>Resultant <small>m</small></th></tr></thead>
-        <tbody>{result.nodal_displacements.map((row) => (
-          <tr key={row.node_id}>
-            <td><span className="table-entity">N{row.node_id}</span></td>
-            <td>{formatNumber(row.u, 5)}</td>
-            <td>{formatNumber(row.v, 5)}</td>
-            <td>{formatNumber(row.phi, 5)}</td>
-            <td>{formatNumber(Math.hypot(row.u, row.v), 5)}</td>
-          </tr>
-        ))}</tbody>
-      </table>
-    </div>
+    <TableContainer sx={{ height: '100%' }}>
+      <Table size="small" stickyHeader>
+        <TableHead>
+          <TableRow>
+            <TableCell>Node</TableCell>
+            <TableCell align="right">u (m)</TableCell>
+            <TableCell align="right">v (m)</TableCell>
+            <TableCell align="right">φ (rad)</TableCell>
+            <TableCell align="right">Resultant (m)</TableCell>
+          </TableRow>
+        </TableHead>
+        <TableBody>
+          {result.nodal_displacements.map((row) => (
+            <TableRow key={row.node_id} hover>
+              <TableCell>
+                <Chip size="small" label={`N${row.node_id}`} color="primary" variant="outlined" />
+              </TableCell>
+              <TableCell align="right">{formatNumber(row.u, 5)}</TableCell>
+              <TableCell align="right">{formatNumber(row.v, 5)}</TableCell>
+              <TableCell align="right">{formatNumber(row.phi, 5)}</TableCell>
+              <TableCell align="right">{formatNumber(Math.hypot(row.u, row.v), 5)}</TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </TableContainer>
   )
 }
 
 function ReactionTable({ result }: { result: SolveResponse }) {
   return (
-    <div className="result-table-wrap">
-      <table>
-        <thead><tr><th>Node</th><th>Fx <small>N</small></th><th>Fy <small>N</small></th><th>Mz <small>N·m</small></th></tr></thead>
-        <tbody>{result.nodal_reactions.map((row) => (
-          <tr key={row.node_id}>
-            <td><span className="table-entity">N{row.node_id}</span></td>
-            <td>{formatNumber(row.fx)}</td>
-            <td>{formatNumber(row.fy)}</td>
-            <td>{formatNumber(row.mz)}</td>
-          </tr>
-        ))}</tbody>
-      </table>
-    </div>
+    <TableContainer sx={{ height: '100%' }}>
+      <Table size="small" stickyHeader>
+        <TableHead>
+          <TableRow>
+            <TableCell>Node</TableCell>
+            <TableCell align="right">Fx (N)</TableCell>
+            <TableCell align="right">Fy (N)</TableCell>
+            <TableCell align="right">Mz (N·m)</TableCell>
+          </TableRow>
+        </TableHead>
+        <TableBody>
+          {result.nodal_reactions.map((row) => (
+            <TableRow key={row.node_id} hover>
+              <TableCell>
+                <Chip size="small" label={`N${row.node_id}`} color="primary" variant="outlined" />
+              </TableCell>
+              <TableCell align="right">{formatNumber(row.fx)}</TableCell>
+              <TableCell align="right">{formatNumber(row.fy)}</TableCell>
+              <TableCell align="right">{formatNumber(row.mz)}</TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </TableContainer>
   )
 }
 
@@ -71,27 +114,58 @@ function FieldSummary({ result, tab }: { result: SolveResponse; tab: FieldResult
   const scale = displayScale(values, meta.unit)
 
   return (
-    <div className="field-summary">
-      <div className="field-summary-heading">
-        <div><span>ELEMENT ENVELOPE</span><strong>{meta.symbol} result values</strong></div>
-        <span className="summary-unit">Values in {scale.unit}</span>
-      </div>
-      <table>
-        <thead><tr><th>Element</th><th>i-end</th><th>j-end</th><th>Min</th><th>Max</th></tr></thead>
-        <tbody>{result.elements.map((element) => {
-          const field = element.fields[key]
-          return (
-            <tr key={element.element_id}>
-              <td><span className="table-entity">E{element.element_id}</span></td>
-              <td>{formatNumber(field[0] / scale.divisor)}</td>
-              <td>{formatNumber(field[field.length - 1] / scale.divisor)}</td>
-              <td>{formatNumber(Math.min(...field) / scale.divisor)}</td>
-              <td>{formatNumber(Math.max(...field) / scale.divisor)}</td>
-            </tr>
-          )
-        })}</tbody>
-      </table>
-    </div>
+    <Box className="field-summary" sx={{ minWidth: 0, minHeight: 0, overflow: 'auto', height: '100%' }}>
+      <Stack
+        direction="row"
+        alignItems="center"
+        justifyContent="space-between"
+        sx={{
+          position: 'sticky',
+          top: 0,
+          zIndex: 1,
+          px: 2,
+          py: 1.25,
+          borderBottom: 1,
+          borderColor: 'divider',
+          bgcolor: 'background.paper',
+        }}
+      >
+        <Box>
+          <Typography variant="caption" color="text.secondary" fontWeight={700}>
+            ELEMENT ENVELOPE
+          </Typography>
+          <Typography variant="subtitle2">{meta.symbol} result values</Typography>
+        </Box>
+        <Chip size="small" label={`Values in ${scale.unit}`} />
+      </Stack>
+      <Table size="small" stickyHeader>
+        <TableHead>
+          <TableRow>
+            <TableCell>Element</TableCell>
+            <TableCell align="right">i-end</TableCell>
+            <TableCell align="right">j-end</TableCell>
+            <TableCell align="right">Min</TableCell>
+            <TableCell align="right">Max</TableCell>
+          </TableRow>
+        </TableHead>
+        <TableBody>
+          {result.elements.map((element) => {
+            const field = element.fields[key]
+            return (
+              <TableRow key={element.element_id} hover>
+                <TableCell>
+                  <Chip size="small" label={`E${element.element_id}`} color="primary" variant="outlined" />
+                </TableCell>
+                <TableCell align="right">{formatNumber(field[0] / scale.divisor)}</TableCell>
+                <TableCell align="right">{formatNumber(field[field.length - 1] / scale.divisor)}</TableCell>
+                <TableCell align="right">{formatNumber(Math.min(...field) / scale.divisor)}</TableCell>
+                <TableCell align="right">{formatNumber(Math.max(...field) / scale.divisor)}</TableCell>
+              </TableRow>
+            )
+          })}
+        </TableBody>
+      </Table>
+    </Box>
   )
 }
 
@@ -110,10 +184,18 @@ function ResultContent({
   if (activeTab === 'reaction') return <ReactionTable result={result} />
 
   return (
-    <div className={`field-results${showDiagram ? ' field-results--with-diagram' : ''}`}>
+    <Box
+      className={`field-results${showDiagram ? ' field-results--with-diagram' : ''}`}
+      sx={{
+        height: '100%',
+        minHeight: 190,
+        display: 'grid',
+        gridTemplateColumns: showDiagram ? { xs: '1fr', md: 'minmax(520px, 1.25fr) minmax(320px, 1fr)' } : '1fr',
+      }}
+    >
       {showDiagram && <ResultDiagram result={result} tab={activeTab} model={model} />}
       <FieldSummary result={result} tab={activeTab} />
-    </div>
+    </Box>
   )
 }
 
@@ -129,64 +211,145 @@ export function ResultsPanel({
   onRun,
 }: ResultsPanelProps) {
   const showDiagram = isExpanded && isFieldResultTab(activeTab)
+  const tabIndex = Math.max(0, resultTabs.findIndex((tab) => tab.id === activeTab))
 
   return (
-    <section className="results-panel" aria-label="分析結果">
-      <div className="results-nav">
-        <div className="results-title"><Table2 size={18} /><span>Results</span></div>
-        <div className="result-tabs" role="tablist">
-          {resultTabs.map((tab) => (
-            <button key={tab.id} type="button" role="tab" aria-selected={activeTab === tab.id} className={activeTab === tab.id ? 'is-active' : ''} onClick={() => onTabChange(tab.id)}>
-              <b>{tab.symbol}</b><span>{tab.label}</span>
-            </button>
-          ))}
-        </div>
-        {result && (
-          <span className={`validation-chip ${result.validation.passed ? '' : 'validation-chip--warning'}`}>
-            {result.validation.passed ? <CheckCircle2 size={15} /> : <CircleAlert size={15} />}
-            {result.validation.passed ? 'Checks passed' : 'Check model'}
-          </span>
-        )}
-        <button
-          className="collapse-results"
-          type="button"
-          onClick={onToggleExpanded}
-          aria-expanded={isExpanded}
-          aria-label={isExpanded ? '缩小结果区域' : '放大结果区域'}
-          title={isExpanded ? 'Compact results' : 'Expand results'}
+    <Box
+      component="section"
+      aria-label="Analysis results"
+      sx={{ height: '100%', display: 'grid', gridTemplateRows: 'auto minmax(0, 1fr)' }}
+    >
+      <Stack
+        direction="row"
+        alignItems="center"
+        spacing={1}
+        sx={{
+          px: 1.5,
+          borderBottom: 1,
+          borderColor: 'divider',
+          bgcolor: 'grey.50',
+          minHeight: 52,
+          gap: 1,
+        }}
+      >
+        <Stack direction="row" alignItems="center" spacing={0.75} sx={{ flexShrink: 0 }}>
+          <TableChartIcon color="primary" fontSize="small" />
+          <Typography variant="subtitle2">Results</Typography>
+        </Stack>
+
+        <Tabs
+          value={tabIndex}
+          onChange={(_, index: number) => onTabChange(resultTabs[index].id)}
+          variant="scrollable"
+          scrollButtons="auto"
+          sx={{ flex: 1, minHeight: 48, '& .MuiTab-root': { minHeight: 48, minWidth: 64 } }}
         >
-          <span>{isExpanded ? 'Compact' : 'Expand'}</span>
-          {isExpanded ? <ChevronsDown size={19} /> : <ChevronsUp size={19} />}
-        </button>
-      </div>
-
-      <div className="results-content">
-        {!result && !error && (
-          <div className="results-empty">
-            <div className="results-empty-icon"><Activity size={22} /></div>
-            <div><strong>{isRunning ? 'Solving the global system…' : 'Model ready for analysis'}</strong><span>{isRunning ? 'Assembling stiffness, loads and boundary conditions.' : 'Run the solver to inspect displacement, reaction and N / V / M fields.'}</span></div>
-            {!isRunning && <button type="button" onClick={onRun}><Play size={16} fill="currentColor" /> Run now</button>}
-            {isRunning && <span className="analysis-progress"><i /></span>}
-          </div>
-        )}
-
-        {error && (
-          <div className="results-error">
-            <CircleAlert size={22} />
-            <div><strong>Analysis could not be completed</strong><span>{error}</span></div>
-            <button type="button" onClick={onRun}>Try again</button>
-          </div>
-        )}
+          {resultTabs.map((tab) => (
+            <Tab
+              key={tab.id}
+              label={
+                <Stack direction="row" spacing={0.75} alignItems="center">
+                  <Typography component="span" sx={{ fontFamily: 'Georgia, serif', fontWeight: 700 }}>
+                    {tab.symbol}
+                  </Typography>
+                  <Typography component="span" variant="caption" sx={{ display: { xs: 'none', sm: 'inline' } }}>
+                    {tab.label}
+                  </Typography>
+                </Stack>
+              }
+            />
+          ))}
+        </Tabs>
 
         {result && (
-          <ResultContent
-            model={model}
-            result={result}
-            activeTab={activeTab}
-            showDiagram={showDiagram}
+          <Chip
+            size="small"
+            icon={result.validation.passed ? <CheckCircleIcon /> : <ErrorOutlineIcon />}
+            label={result.validation.passed ? 'Checks passed' : 'Check model'}
+            color={result.validation.passed ? 'success' : 'warning'}
+            variant="outlined"
+            sx={{ display: { xs: 'none', md: 'inline-flex' } }}
           />
         )}
-      </div>
-    </section>
+
+        <Button
+          size="small"
+          variant="outlined"
+          color="inherit"
+          onClick={onToggleExpanded}
+          startIcon={isExpanded ? <UnfoldLessIcon /> : <UnfoldMoreIcon />}
+          sx={{ flexShrink: 0, display: { xs: 'inline-flex', sm: 'inline-flex' } }}
+        >
+          <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}>
+            {isExpanded ? 'Compact' : 'Expand'}
+          </Box>
+        </Button>
+      </Stack>
+
+      {isRunning && <LinearProgress />}
+
+      <Box sx={{ minHeight: 0, overflow: 'auto' }}>
+        {isRunning && (
+          <Stack alignItems="center" justifyContent="center" spacing={1} sx={{ height: '100%', p: 3 }}>
+            <Typography variant="subtitle2">Solving linear static system…</Typography>
+            <Typography variant="body2" color="text.secondary">
+              Assembling stiffness, applying BCs, recovering N/V/M fields.
+            </Typography>
+          </Stack>
+        )}
+
+        {!isRunning && error && (
+          <Alert
+            severity="error"
+            sx={{ m: 2 }}
+            action={
+              <Button color="inherit" size="small" startIcon={<PlayArrowIcon />} onClick={onRun}>
+                Retry
+              </Button>
+            }
+          >
+            <Typography variant="subtitle2">Analysis failed</Typography>
+            {error}
+          </Alert>
+        )}
+
+        {!isRunning && !error && !result && (
+          <Stack
+            direction={{ xs: 'column', sm: 'row' }}
+            alignItems="center"
+            justifyContent="center"
+            spacing={2}
+            sx={{ height: '100%', p: 3 }}
+          >
+            <Box
+              sx={{
+                width: 44,
+                height: 44,
+                borderRadius: 2,
+                display: 'grid',
+                placeItems: 'center',
+                bgcolor: 'primary.main',
+                color: 'primary.contrastText',
+              }}
+            >
+              <TableChartIcon />
+            </Box>
+            <Box>
+              <Typography variant="subtitle2">No results yet</Typography>
+              <Typography variant="body2" color="text.secondary">
+                Complete the workflow (nodes → members → supports → loads), assign material & section, then run.
+              </Typography>
+            </Box>
+            <Button variant="contained" startIcon={<PlayArrowIcon />} onClick={onRun}>
+              Run Analysis
+            </Button>
+          </Stack>
+        )}
+
+        {!isRunning && !error && result && (
+          <ResultContent model={model} result={result} activeTab={activeTab} showDiagram={showDiagram} />
+        )}
+      </Box>
+    </Box>
   )
 }

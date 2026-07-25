@@ -1,4 +1,6 @@
-import { CheckCircle2, CircleAlert, X } from 'lucide-react'
+import Alert from '@mui/material/Alert'
+import Box from '@mui/material/Box'
+import Snackbar from '@mui/material/Snackbar'
 import { useCallback, useEffect, useReducer, useRef, useState, type ChangeEvent } from 'react'
 import type { SolveResponse } from './api/contracts'
 import {
@@ -9,11 +11,14 @@ import {
   saveModelHistoryEntry,
   solveFrame,
 } from './api/frameApi'
+import { GuidanceDialog } from './components/GuidanceDialog'
 import { ModelCanvas } from './components/ModelCanvas'
 import { PropertiesPanel } from './components/PropertiesPanel'
 import { ResultsPanel, type ResultTab } from './components/ResultsPanel'
+import { ToolGuidanceAlert } from './components/ToolGuidanceAlert'
 import { ToolRail } from './components/ToolRail'
 import { TopToolbar } from './components/TopToolbar'
+import { WorkflowProgress } from './components/WorkflowProgress'
 import {
   commonExampleModels,
   createBlankModel,
@@ -32,12 +37,16 @@ import {
   type SupportDefaults,
   type ToolMode,
 } from './domain/frame'
+import {
+  GUIDANCE_VISIBLE_KEY,
+  ONBOARDING_KEY,
+} from './guidance/workflow'
 import { modelReducer, type ModelAction } from './state/modelReducer'
 
 type AnalysisState = 'idle' | 'running' | 'success' | 'error'
 
 interface ToastState {
-  tone: 'neutral' | 'success' | 'error'
+  severity: 'info' | 'success' | 'error'
   message: string
 }
 
@@ -53,10 +62,10 @@ function loadModelHistory(): ModelHistoryEntry[] {
       if (!item || typeof item !== 'object') return []
       const candidate = item as Partial<ModelHistoryEntry>
       if (
-        typeof candidate.id !== 'string' ||
-        typeof candidate.name !== 'string' ||
-        typeof candidate.savedAt !== 'string' ||
-        (candidate.source !== 'saved' && candidate.source !== 'analyzed')
+        typeof candidate.id !== 'string'
+        || typeof candidate.name !== 'string'
+        || typeof candidate.savedAt !== 'string'
+        || (candidate.source !== 'saved' && candidate.source !== 'analyzed')
       ) return []
       try {
         return [{ ...candidate, model: parseFrameModel(candidate.model) } as ModelHistoryEntry]
@@ -79,9 +88,9 @@ function loadExampleModels(): ExampleModelDefinition[] {
       if (!item || typeof item !== 'object') return []
       const candidate = item as Partial<ExampleModelDefinition>
       if (
-        typeof candidate.id !== 'string' ||
-        typeof candidate.name !== 'string' ||
-        typeof candidate.description !== 'string'
+        typeof candidate.id !== 'string'
+        || typeof candidate.name !== 'string'
+        || typeof candidate.description !== 'string'
       ) return []
       try {
         return [{ ...candidate, model: parseFrameModel(candidate.model) } as ExampleModelDefinition]
@@ -92,6 +101,12 @@ function loadExampleModels(): ExampleModelDefinition[] {
   } catch {
     return structuredClone(commonExampleModels)
   }
+}
+
+function loadGuidanceVisible(): boolean {
+  const stored = localStorage.getItem(GUIDANCE_VISIBLE_KEY)
+  if (stored === null) return true
+  return stored !== '0'
 }
 
 export default function App() {
@@ -112,6 +127,8 @@ export default function App() {
   const [exampleModels, setExampleModels] = useState<ExampleModelDefinition[]>(loadExampleModels)
   const [isDirty, setIsDirty] = useState(false)
   const [toast, setToast] = useState<ToastState | null>(null)
+  const [guidanceOpen, setGuidanceOpen] = useState(() => localStorage.getItem(ONBOARDING_KEY) !== '1')
+  const [guidanceVisible, setGuidanceVisible] = useState(loadGuidanceVisible)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const analysisAbortRef = useRef<AbortController | null>(null)
   const historyAbortRef = useRef<AbortController | null>(null)
@@ -126,8 +143,8 @@ export default function App() {
     }
   }, [])
 
-  const showMessage = useCallback((message: string, tone: ToastState['tone'] = 'neutral') => {
-    setToast({ message, tone })
+  const showMessage = useCallback((message: string, severity: ToastState['severity'] = 'info') => {
+    setToast({ message, severity })
   }, [])
 
   const rememberModel = useCallback(async (snapshot: FrameModel, source: ModelHistoryEntry['source']) => {
@@ -145,7 +162,7 @@ export default function App() {
     try {
       await saveModelHistoryEntry(entry)
     } catch {
-      showMessage('数据库暂时不可用；快照已保存在本机，恢复连接后会自动重试。', 'error')
+      showMessage('Database temporarily unavailable; snapshot saved locally and will sync later.', 'error')
     }
   }, [showMessage])
 
@@ -162,14 +179,8 @@ export default function App() {
     return true
   }, [showMessage])
 
-  useEffect(() => {
-    if (!toast) return
-    const timer = window.setTimeout(() => setToast(null), 2800)
-    return () => window.clearTimeout(timer)
-  }, [toast])
-
   const handleNew = useCallback(() => {
-    if (isDirty && !window.confirm('目前模型有尚未儲存的變更，仍要建立新模型嗎？')) return
+    if (isDirty && !window.confirm('The current model has unsaved changes. Create a new model anyway?')) return
     analysisAbortRef.current?.abort()
     baseDispatch({ type: 'replace', model: createBlankModel() })
     setSelection(null)
@@ -180,7 +191,7 @@ export default function App() {
     setElementDefaults({ materialId: null, sectionId: null })
     setCanvasRevision((revision) => revision + 1)
     setIsDirty(false)
-    showMessage('已建立空白模型')
+    showMessage('Blank model created')
   }, [isDirty, showMessage])
 
   const handleOpen = useCallback(() => fileInputRef.current?.click(), [])
@@ -201,9 +212,9 @@ export default function App() {
       setAnalysisState('idle')
       setCanvasRevision((revision) => revision + 1)
       setIsDirty(false)
-      showMessage(`已開啟 ${file.name}`, 'success')
+      showMessage(`Opened ${file.name}`, 'success')
     } catch (error) {
-      showMessage(error instanceof Error ? error.message : '無法讀取此模型檔案。', 'error')
+      showMessage(error instanceof Error ? error.message : 'Could not read this model file.', 'error')
     }
   }, [showMessage])
 
@@ -218,12 +229,12 @@ export default function App() {
     URL.revokeObjectURL(url)
     setIsDirty(false)
     void rememberModel(model, 'saved')
-    showMessage('模型已儲存', 'success')
+    showMessage('Model saved', 'success')
   }, [guideToMissingAssignment, model, rememberModel, showMessage])
 
   const handleRun = useCallback(async () => {
     if (model.nodes.length === 0 || model.elements.length === 0) {
-      setAnalysisError('至少需要一個節點與一個構件才能執行分析。')
+      setAnalysisError('At least one node and one element are required to run analysis.')
       setAnalysisState('error')
       setActiveResult('displacement')
       return
@@ -242,9 +253,8 @@ export default function App() {
       setAnalysisState('success')
       setActiveResult('displacement')
       void rememberModel(model, 'analyzed')
-      showMessage('分析完成，結果已更新', 'success')
+      showMessage('Analysis complete — results updated', 'success')
     } catch (error) {
-      // Ignore aborts from a superseded run; only the latest controller owns UI state.
       if (error instanceof DOMException && error.name === 'AbortError') {
         if (analysisAbortRef.current === controller) {
           setAnalysisState('idle')
@@ -254,7 +264,7 @@ export default function App() {
       if (analysisAbortRef.current !== controller) return
       const message = error instanceof FrameApiError || error instanceof Error
         ? error.message
-        : '分析失敗，請檢查模型。'
+        : 'Analysis failed. Check the model.'
       setAnalysisError(message)
       setAnalysisState('error')
       showMessage(message, 'error')
@@ -284,7 +294,7 @@ export default function App() {
   }, [showMessage])
 
   const handleLoadExample = useCallback((example: ExampleModelDefinition) => {
-    if (isDirty && !window.confirm('目前模型有尚未儲存的變更，仍要載入範例嗎？')) return
+    if (isDirty && !window.confirm('The current model has unsaved changes. Load this example anyway?')) return
     baseDispatch({ type: 'replace', model: structuredClone(example.model) })
     setSelection(null)
     setResult(null)
@@ -304,7 +314,7 @@ export default function App() {
       if (deleted) {
         setModelHistory((current) => [deleted, ...current].slice(0, 12))
       }
-      showMessage('无法从数据库删除此历史模型。', 'error')
+      showMessage('Could not delete this history entry from the database.', 'error')
     })
   }, [modelHistory, showMessage])
 
@@ -315,7 +325,7 @@ export default function App() {
     setModelHistory([])
     void clearModelHistory().catch(() => {
       setModelHistory(deleted)
-      showMessage('无法从数据库批量删除历史模型。', 'error')
+      showMessage('Could not clear history from the database.', 'error')
     })
   }, [modelHistory, showMessage])
 
@@ -339,6 +349,21 @@ export default function App() {
     setExampleModels((current) => [example, ...current.filter((item) => item.id !== example.id)])
     showMessage(`${entry.name} added to Example models`, 'success')
   }, [showMessage])
+
+  const handleCloseGuidance = useCallback((dontShowAgain: boolean) => {
+    setGuidanceOpen(false)
+    if (dontShowAgain) {
+      localStorage.setItem(ONBOARDING_KEY, '1')
+    }
+  }, [])
+
+  const handleToggleGuidance = useCallback(() => {
+    setGuidanceVisible((current) => {
+      const next = !current
+      localStorage.setItem(GUIDANCE_VISIBLE_KEY, next ? '1' : '0')
+      return next
+    })
+  }, [])
 
   useEffect(() => {
     localStorage.setItem(HISTORY_KEY, JSON.stringify(modelHistory))
@@ -371,7 +396,7 @@ export default function App() {
         setModelHistory(validEntries.slice(0, 12))
       } catch (error) {
         if (error instanceof DOMException && error.name === 'AbortError') return
-        showMessage('无法读取模型数据库，暂时显示浏览器中的历史记录。', 'error')
+        showMessage('Could not read the model database; showing browser history for now.', 'error')
       }
     }
 
@@ -386,6 +411,11 @@ export default function App() {
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 's') {
         event.preventDefault()
         handleSave()
+        return
+      }
+      if (event.key === '?' || (event.shiftKey && event.key === '/')) {
+        event.preventDefault()
+        setGuidanceOpen(true)
         return
       }
       const toolShortcuts: Record<string, ToolMode> = {
@@ -404,11 +434,22 @@ export default function App() {
   }, [])
 
   return (
-    <div className="app-shell">
+    <Box
+      className="app-shell"
+      sx={{
+        height: '100vh',
+        minHeight: 680,
+        display: 'flex',
+        flexDirection: 'column',
+        bgcolor: 'background.default',
+        overflow: 'hidden',
+      }}
+    >
       <TopToolbar
         modelName={model.name}
         isDirty={isDirty}
         analysisState={analysisState}
+        guidanceVisible={guidanceVisible}
         fileInputRef={fileInputRef}
         onRename={(name) => dispatch({ type: 'rename', name })}
         onNew={handleNew}
@@ -416,67 +457,156 @@ export default function App() {
         onFileChange={handleFileChange}
         onSave={handleSave}
         onRun={handleRun}
+        onOpenGuidance={() => setGuidanceOpen(true)}
+        onToggleGuidance={handleToggleGuidance}
       />
-      <main className={`workspace ${resultsExpanded ? 'workspace--results-expanded' : ''} ${propertiesCollapsed ? 'workspace--properties-collapsed' : ''}`}>
-        <ToolRail activeTool={activeTool} onToolChange={handleToolChange} />
-        <ModelCanvas
-          key={canvasRevision}
-          model={model}
-          tool={activeTool}
-          selection={selection}
-          result={result}
-          activeResult={activeResult}
-          elementDefaults={elementDefaults}
-          supportDefaults={supportDefaults}
-          nodalLoadDefaults={nodalLoadDefaults}
-          dispatch={dispatch}
-          onSelectionChange={setSelection}
-          onMessage={showMessage}
-        />
-        <PropertiesPanel
-          model={model}
-          activeTool={activeTool}
-          selection={selection}
-          elementDefaults={elementDefaults}
-          supportDefaults={supportDefaults}
-          nodalLoadDefaults={nodalLoadDefaults}
-          modelHistory={modelHistory}
-          exampleModels={exampleModels}
-          isCollapsed={propertiesCollapsed}
-          dispatch={dispatch}
-          onToolChange={handleToolChange}
-          onElementDefaultsChange={setElementDefaults}
-          onSupportDefaultsChange={setSupportDefaults}
-          onNodalLoadDefaultsChange={setNodalLoadDefaults}
-          onRestoreModel={handleRestoreModel}
-          onLoadExample={handleLoadExample}
-          onDeleteHistory={handleDeleteHistory}
-          onDeleteAllHistory={handleDeleteAllHistory}
-          onDeleteExample={handleDeleteExample}
-          onDeleteAllExamples={handleDeleteAllExamples}
-          onCreateExample={handleCreateExample}
-          onSelectionChange={setSelection}
-          onToggleCollapsed={() => setPropertiesCollapsed((collapsed) => !collapsed)}
-        />
-        <ResultsPanel
-          model={model}
-          result={result}
-          activeTab={activeResult}
-          isRunning={analysisState === 'running'}
-          error={analysisError}
-          isExpanded={resultsExpanded}
-          onTabChange={setActiveResult}
-          onToggleExpanded={() => setResultsExpanded((expanded) => !expanded)}
-          onRun={handleRun}
-        />
-      </main>
-      {toast && (
-        <div className={`toast toast--${toast.tone}`} role="status">
-          {toast.tone === 'success' ? <CheckCircle2 size={18} /> : toast.tone === 'error' ? <CircleAlert size={18} /> : null}
-          <span>{toast.message}</span>
-          <button type="button" onClick={() => setToast(null)} aria-label="關閉通知"><X size={16} /></button>
-        </div>
-      )}
-    </div>
+
+      <WorkflowProgress model={model} onJumpToTool={handleToolChange} />
+
+      <Box
+        component="main"
+        className={`workspace ${resultsExpanded ? 'workspace--results-expanded' : ''} ${propertiesCollapsed ? 'workspace--properties-collapsed' : ''}`}
+        sx={{
+          flex: 1,
+          minHeight: 0,
+          display: 'grid',
+          gridTemplateColumns: {
+            xs: propertiesCollapsed ? '64px minmax(0, 1fr)' : '64px minmax(0, 1fr)',
+            sm: propertiesCollapsed ? '88px 56px minmax(0, 1fr)' : '88px 360px minmax(0, 1fr)',
+            md: propertiesCollapsed ? '88px 56px minmax(0, 1fr)' : '88px 380px minmax(0, 1fr)',
+          },
+          gridTemplateRows: resultsExpanded
+            ? { xs: 'minmax(240px, 1fr) auto minmax(320px, 0.9fr)', md: 'minmax(210px, 38%) minmax(400px, 62%)' }
+            : { xs: 'minmax(280px, 1fr) auto clamp(240px, 28vh, 340px)', md: 'minmax(280px, 1fr) clamp(300px, 30vh, 360px)' },
+          overflow: 'hidden',
+        }}
+      >
+        <Box sx={{ gridColumn: 1, gridRow: { xs: '1 / -1', md: '1 / 3' }, minHeight: 0, display: 'flex' }}>
+          <ToolRail activeTool={activeTool} onToolChange={handleToolChange} />
+        </Box>
+
+        <Box
+          className="canvas-panel"
+          sx={{
+            gridColumn: { xs: 2, sm: 3 },
+            gridRow: 1,
+            minWidth: 0,
+            minHeight: 0,
+            display: 'flex',
+            flexDirection: 'column',
+            bgcolor: 'background.paper',
+            borderLeft: { sm: 0 },
+          }}
+        >
+          <ToolGuidanceAlert tool={activeTool} visible={guidanceVisible} />
+          <Box sx={{ flex: 1, minHeight: 0 }}>
+            <ModelCanvas
+              key={canvasRevision}
+              model={model}
+              tool={activeTool}
+              selection={selection}
+              result={result}
+              activeResult={activeResult}
+              elementDefaults={elementDefaults}
+              supportDefaults={supportDefaults}
+              nodalLoadDefaults={nodalLoadDefaults}
+              dispatch={dispatch}
+              onSelectionChange={setSelection}
+              onMessage={(message) => showMessage(message)}
+            />
+          </Box>
+        </Box>
+
+        <Box
+          sx={{
+            gridColumn: { xs: 2, sm: 2 },
+            gridRow: { xs: 2, sm: 1 },
+            minWidth: 0,
+            minHeight: 0,
+            display: { xs: propertiesCollapsed ? 'none' : 'flex', sm: 'flex' },
+            flexDirection: 'column',
+            borderRight: { sm: 1 },
+            borderColor: 'divider',
+            bgcolor: 'grey.50',
+            maxHeight: { xs: 420, sm: 'none' },
+          }}
+        >
+          <PropertiesPanel
+            model={model}
+            activeTool={activeTool}
+            selection={selection}
+            elementDefaults={elementDefaults}
+            supportDefaults={supportDefaults}
+            nodalLoadDefaults={nodalLoadDefaults}
+            modelHistory={modelHistory}
+            exampleModels={exampleModels}
+            isCollapsed={propertiesCollapsed}
+            dispatch={dispatch}
+            onToolChange={handleToolChange}
+            onElementDefaultsChange={setElementDefaults}
+            onSupportDefaultsChange={setSupportDefaults}
+            onNodalLoadDefaultsChange={setNodalLoadDefaults}
+            onRestoreModel={handleRestoreModel}
+            onLoadExample={handleLoadExample}
+            onDeleteHistory={handleDeleteHistory}
+            onDeleteAllHistory={handleDeleteAllHistory}
+            onDeleteExample={handleDeleteExample}
+            onDeleteAllExamples={handleDeleteAllExamples}
+            onCreateExample={handleCreateExample}
+            onSelectionChange={setSelection}
+            onToggleCollapsed={() => setPropertiesCollapsed((collapsed) => !collapsed)}
+          />
+        </Box>
+
+        <Box
+          sx={{
+            gridColumn: { xs: 2, sm: '2 / 4' },
+            gridRow: { xs: 3, sm: 2 },
+            minWidth: 0,
+            minHeight: 0,
+            borderTop: 1,
+            borderColor: 'divider',
+            bgcolor: 'background.paper',
+          }}
+        >
+          <ResultsPanel
+            model={model}
+            result={result}
+            activeTab={activeResult}
+            isRunning={analysisState === 'running'}
+            error={analysisError}
+            isExpanded={resultsExpanded}
+            onTabChange={setActiveResult}
+            onToggleExpanded={() => setResultsExpanded((expanded) => !expanded)}
+            onRun={handleRun}
+          />
+        </Box>
+      </Box>
+
+      <Snackbar
+        open={Boolean(toast)}
+        autoHideDuration={3200}
+        onClose={(_, reason) => {
+          if (reason === 'clickaway') return
+          setToast(null)
+        }}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert
+          onClose={() => setToast(null)}
+          severity={toast?.severity ?? 'info'}
+          variant="filled"
+          sx={{ width: '100%' }}
+        >
+          {toast?.message}
+        </Alert>
+      </Snackbar>
+
+      <GuidanceDialog
+        open={guidanceOpen}
+        onClose={handleCloseGuidance}
+        onJumpToTool={handleToolChange}
+      />
+    </Box>
   )
 }
