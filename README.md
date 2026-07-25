@@ -24,7 +24,7 @@ React workbench · FastAPI · Python FE core
 
 ```bash
 # 1. Clone
-git clone <your-repo-url> 2D-Frame-Project
+git clone https://github.com/feizhang233/Frame-Studio.git 2D-Frame-Project
 cd 2D-Frame-Project
 
 # 2. Python env + solver
