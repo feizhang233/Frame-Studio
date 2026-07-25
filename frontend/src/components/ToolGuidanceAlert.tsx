@@ -1,8 +1,10 @@
+import CloseIcon from '@mui/icons-material/Close'
 import LightbulbOutlinedIcon from '@mui/icons-material/LightbulbOutlined'
 import Alert from '@mui/material/Alert'
 import AlertTitle from '@mui/material/AlertTitle'
 import Box from '@mui/material/Box'
 import Collapse from '@mui/material/Collapse'
+import IconButton from '@mui/material/IconButton'
 import List from '@mui/material/List'
 import ListItem from '@mui/material/ListItem'
 import ListItemText from '@mui/material/ListItemText'
@@ -13,10 +15,11 @@ import type { ToolMode } from '../domain/frame'
 interface ToolGuidanceAlertProps {
   tool: ToolMode
   visible: boolean
+  onDismiss: () => void
 }
 
 /** Contextual guidance banner that tracks the active modeling tool. */
-export function ToolGuidanceAlert({ tool, visible }: ToolGuidanceAlertProps) {
+export function ToolGuidanceAlert({ tool, visible, onDismiss }: ToolGuidanceAlertProps) {
   const hint = TOOL_HINTS[tool]
 
   return (
@@ -25,6 +28,16 @@ export function ToolGuidanceAlert({ tool, visible }: ToolGuidanceAlertProps) {
         <Alert
           severity="info"
           icon={<LightbulbOutlinedIcon fontSize="inherit" />}
+          action={
+            <IconButton
+              aria-label="Dismiss guidance"
+              color="inherit"
+              size="small"
+              onClick={onDismiss}
+            >
+              <CloseIcon fontSize="small" />
+            </IconButton>
+          }
           sx={{
             alignItems: 'flex-start',
             '& .MuiAlert-message': { width: '100%' },

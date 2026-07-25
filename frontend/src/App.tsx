@@ -132,6 +132,7 @@ export default function App() {
   const [toast, setToast] = useState<ToastState | null>(null)
   const [guidanceOpen, setGuidanceOpen] = useState(() => localStorage.getItem(ONBOARDING_KEY) !== '1')
   const [guidanceVisible, setGuidanceVisible] = useState(loadGuidanceVisible)
+  const [workflowCollapsed, setWorkflowCollapsed] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const analysisAbortRef = useRef<AbortController | null>(null)
   const historyAbortRef = useRef<AbortController | null>(null)
@@ -390,6 +391,17 @@ export default function App() {
     })
   }, [])
 
+  const handleDismissGuidance = useCallback(() => {
+    setGuidanceVisible(false)
+    localStorage.setItem(GUIDANCE_VISIBLE_KEY, '0')
+  }, [])
+
+  const handleOpenGuidance = useCallback(() => {
+    setGuidanceOpen(true)
+    setGuidanceVisible(true)
+    localStorage.setItem(GUIDANCE_VISIBLE_KEY, '1')
+  }, [])
+
   useEffect(() => {
     localStorage.setItem(HISTORY_KEY, JSON.stringify(modelHistory))
   }, [modelHistory])
@@ -440,7 +452,7 @@ export default function App() {
       }
       if (event.key === '?' || (event.shiftKey && event.key === '/')) {
         event.preventDefault()
-        setGuidanceOpen(true)
+        handleOpenGuidance()
         return
       }
       const toolShortcuts: Record<string, ToolMode> = {
@@ -451,7 +463,7 @@ export default function App() {
     }
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [handleSave, handleToolChange])
+  }, [handleOpenGuidance, handleSave, handleToolChange])
 
   useEffect(() => () => {
     analysisAbortRef.current?.abort()
@@ -497,11 +509,16 @@ export default function App() {
         onFileChange={handleFileChange}
         onSave={handleSave}
         onRun={handleRun}
-        onOpenGuidance={() => setGuidanceOpen(true)}
+        onOpenGuidance={handleOpenGuidance}
         onToggleGuidance={handleToggleGuidance}
       />
 
-      <WorkflowProgress model={model} onJumpToTool={handleToolChange} />
+      <WorkflowProgress
+        model={model}
+        isCollapsed={workflowCollapsed}
+        onJumpToTool={handleToolChange}
+        onToggleCollapsed={() => setWorkflowCollapsed((collapsed) => !collapsed)}
+      />
 
       <Box
         component="main"
@@ -540,7 +557,11 @@ export default function App() {
             borderLeft: { sm: 0 },
           }}
         >
-          <ToolGuidanceAlert tool={activeTool} visible={guidanceVisible} />
+          <ToolGuidanceAlert
+            tool={activeTool}
+            visible={guidanceVisible}
+            onDismiss={handleDismissGuidance}
+          />
           <Box sx={{ flex: 1, minHeight: 0 }}>
             <ModelCanvas
               key={canvasRevision}

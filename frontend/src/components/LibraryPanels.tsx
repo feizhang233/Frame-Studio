@@ -115,17 +115,7 @@ function AssignmentList({
     <section className="library-apply-section" data-assignment-overlay-keep>
       <div className="library-section-title">
         <div><span>ASSIGNMENT</span><strong>Apply to elements</strong></div>
-        <div className="library-section-actions">
-          <button
-            type="button"
-            className={`assignment-details-button ${overlayActive ? 'is-active' : ''}`}
-            aria-pressed={overlayActive}
-            onClick={() => onToggleAssignmentOverlay(kind)}
-          >
-            More details
-          </button>
-          <button type="button" onClick={onApplyAll}><CheckIcon sx={{ fontSize: 16 }} /> Apply all</button>
-        </div>
+        <button type="button" onClick={onApplyAll}><CheckIcon sx={{ fontSize: 16 }} /> Apply all</button>
       </div>
       <div className="element-assignment-list">
         {model.elements.length === 0 && <div className="library-empty-inline">Create an element before assigning properties.</div>}
@@ -157,6 +147,14 @@ function AssignmentList({
           )
         })}
       </div>
+      <button
+        type="button"
+        className={`assignment-details-footer ${overlayActive ? 'is-active' : ''}`}
+        aria-pressed={overlayActive}
+        onClick={() => onToggleAssignmentOverlay(kind)}
+      >
+        More details
+      </button>
     </section>
   )
 }
@@ -383,8 +381,8 @@ export function ModelsPanel({
   onCreateExample: (entry: ModelHistoryEntry) => void
   onToggleCollapsed: () => void
 }) {
-  const [examplesCollapsed, setExamplesCollapsed] = useState(false)
-  const [historyCollapsed, setHistoryCollapsed] = useState(false)
+  const [examplesCollapsed, setExamplesCollapsed] = useState(true)
+  const [historyCollapsed, setHistoryCollapsed] = useState(true)
   const [draggedHistoryId, setDraggedHistoryId] = useState<string | null>(null)
   const [exampleDropActive, setExampleDropActive] = useState(false)
 

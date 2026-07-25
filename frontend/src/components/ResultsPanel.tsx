@@ -229,19 +229,27 @@ export function ResultsPanel({
           height: '100%',
           display: 'flex',
           alignItems: 'center',
-          justifyContent: 'center',
+          justifyContent: 'space-between',
+          px: 1.5,
           bgcolor: 'grey.50',
+          borderTop: 0,
         }}
       >
+        <Stack direction="row" alignItems="center" spacing={0.75} sx={{ flexShrink: 0 }}>
+          <TableChartIcon color="primary" fontSize="small" />
+          <Typography variant="subtitle2">Results</Typography>
+        </Stack>
         <Button
           size="small"
           variant="outlined"
           color="inherit"
           onClick={onOpen}
           startIcon={<UnfoldMoreIcon />}
-          sx={{ minWidth: 140 }}
+          sx={{ flexShrink: 0 }}
         >
-          Results
+          <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}>
+            Expand
+          </Box>
         </Button>
       </Box>
     )

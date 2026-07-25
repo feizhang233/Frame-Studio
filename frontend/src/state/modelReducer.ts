@@ -30,6 +30,7 @@ export type ModelAction =
   | { type: 'upsertDistributedLoad'; load: DistributedLoad }
   | { type: 'updateDistributedLoad'; elementId: number; patch: Partial<DistributedLoad> }
   | { type: 'updateOptions'; patch: Partial<AnalysisOptions> }
+  | { type: 'splitElement'; elementId: number; ratio: number }
   | { type: 'delete'; entity: 'node' | 'element' | 'support' | 'nodalLoad' | 'distributedLoad'; id: number }
 
 export function modelReducer(model: FrameModel, action: ModelAction): FrameModel {
@@ -159,6 +160,61 @@ export function modelReducer(model: FrameModel, action: ModelAction): FrameModel
       }
     case 'updateOptions':
       return { ...model, options: { ...model.options, ...action.patch } }
+    case 'splitElement': {
+      const element = model.elements.find((item) => item.id === action.elementId)
+      if (!element) return model
+      const nodeI = model.nodes.find((item) => item.id === element.node_i)
+      const nodeJ = model.nodes.find((item) => item.id === element.node_j)
+      if (!nodeI || !nodeJ) return model
+      const ratio = Math.min(0.999, Math.max(0.001, action.ratio))
+      const newNodeId = Math.max(0, ...model.nodes.map((item) => item.id)) + 1
+      const newElementId = Math.max(0, ...model.elements.map((item) => item.id)) + 1
+      const midNode: FrameNode = {
+        id: newNodeId,
+        x: nodeI.x + (nodeJ.x - nodeI.x) * ratio,
+        y: nodeI.y + (nodeJ.y - nodeI.y) * ratio,
+      }
+      const secondElement: FrameElement = {
+        ...element,
+        id: newElementId,
+        node_i: newNodeId,
+        node_j: element.node_j,
+      }
+      const existingLoad = model.distributed_loads.find((item) => item.element_id === element.id)
+      let distributed_loads = model.distributed_loads
+      if (existingLoad) {
+        const qxMid = existingLoad.qx_i + (existingLoad.qx_j - existingLoad.qx_i) * ratio
+        const qyMid = existingLoad.qy_i + (existingLoad.qy_j - existingLoad.qy_i) * ratio
+        distributed_loads = [
+          ...model.distributed_loads.filter((item) => item.element_id !== element.id),
+          {
+            element_id: element.id,
+            qx_i: existingLoad.qx_i,
+            qy_i: existingLoad.qy_i,
+            qx_j: qxMid,
+            qy_j: qyMid,
+          },
+          {
+            element_id: newElementId,
+            qx_i: qxMid,
+            qy_i: qyMid,
+            qx_j: existingLoad.qx_j,
+            qy_j: existingLoad.qy_j,
+          },
+        ]
+      }
+      return {
+        ...model,
+        nodes: [...model.nodes, midNode],
+        elements: [
+          ...model.elements.map((item) =>
+            item.id === element.id ? { ...item, node_j: newNodeId } : item,
+          ),
+          secondElement,
+        ],
+        distributed_loads,
+      }
+    }
     case 'delete': {
       if (action.entity === 'node') {
         const elementIds = model.elements
