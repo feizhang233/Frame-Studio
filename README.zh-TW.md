@@ -18,13 +18,14 @@ React 工作臺 · FastAPI · Python 有限元素核心
 
 ---
 
-## 60 秒上手
+## 快速開始
 
-**環境：** Python `3.11+` · Node.js `20.19+` 或 `22.12+` · npm
+**必需環境：** Python `3.11+` · Node.js `20.19+` 或 `22.12+` · npm<br>
+**選用環境：** Docker，用於透過 MySQL 持久儲存模型歷史
 
 ```bash
 # 1. 克隆並進入專案
-git clone <your-repo-url> 2D-Frame-Project
+git clone https://github.com/feizhang233/2D-Frame-Project.git
 cd 2D-Frame-Project
 
 # 2. Python 環境 + 安裝求解器
@@ -34,9 +35,12 @@ python -m pip install --upgrade pip
 python -m pip install -e ".[test]"
 
 # 3. 前端依賴
-npm --prefix frontend install
+npm --prefix frontend ci
 
-# 4. 一條命令同時啟動前端 + API
+# 4. 選用：啟用持久化模型歷史
+docker compose up -d mysql
+
+# 5. 一條命令同時啟動前端 + API
 npm run dev
 ```
 
@@ -48,7 +52,9 @@ npm run dev
 | Swagger API 文件 | http://127.0.0.1:8000/docs |
 | 健康檢查 | http://127.0.0.1:8000/health |
 
-終端機按 `Ctrl+C` 會同時停止前後端。
+終端機按 `Ctrl+C` 會同時停止前後端。MySQL 會繼續在 Docker 中執行，可用 `docker compose stop mysql` 停止。
+
+> 求解功能不依賴 Docker。MySQL 無法使用時仍可正常建模與分析，模型歷史會暫時使用目前瀏覽器的本機儲存空間。
 
 > **第一次開啟會看到什麼？**  
 > 內建範例 **Portal frame 01**（門式剛架 + 均佈荷載）。點右上角 **Run Analysis**，底部 Results 即可切換位移、反力、軸力、剪力、彎矩。

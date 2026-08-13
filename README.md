@@ -2,7 +2,7 @@
 
 # Frame Studio / frame2d
 
-**Draw 2D frames, run linear-static analysis, and inspect N / V / M — in the browser.**
+**Model 2D frames, run linear-static analysis, and inspect N / V / M — in the browser.**
 
 React workbench · FastAPI · Python FE core
 
@@ -12,31 +12,35 @@ React workbench · FastAPI · Python FE core
 
 <img src="photo/workbench-overview.png" alt="Frame Studio workbench overview" width="920" />
 
-<sub>Out of the box: canvas modeling · material / section libraries · result tables & diagrams</sub>
+<sub>Visual modeling · reusable material and section libraries · diagrams, tables, and validation checks</sub>
 
 </div>
 
 ---
 
-## Get running in 60 seconds
+## Quick start
 
-**Requirements:** Python `3.11+` · Node.js `20.19+` or `22.12+` · npm
+**Requirements:** Python `3.11+` · Node.js `20.19+` or `22.12+` · npm<br>
+**Optional:** Docker, for persistent model history in MySQL
 
 ```bash
-# 1. Clone
-git clone https://github.com/feizhang233/Frame-Studio.git 2D-Frame-Project
+# 1. Clone the repository
+git clone https://github.com/feizhang233/2D-Frame-Project.git
 cd 2D-Frame-Project
 
-# 2. Python env + solver
+# 2. Install the Python solver and API
 python3 -m venv .venv
 source .venv/bin/activate          # Windows: .venv\Scripts\Activate.ps1
 python -m pip install --upgrade pip
 python -m pip install -e ".[test]"
 
-# 3. Frontend deps
-npm --prefix frontend install
+# 3. Install the frontend
+npm --prefix frontend ci
 
-# 4. One command: UI + API
+# 4. Optional: enable persistent model history
+docker compose up -d mysql
+
+# 5. Start the UI and API together
 npm run dev
 ```
 
@@ -48,10 +52,12 @@ Open in the browser:
 | Swagger UI | http://127.0.0.1:8000/docs |
 | Health | http://127.0.0.1:8000/health |
 
-`Ctrl+C` stops both processes.
+`Ctrl+C` stops both development processes. MySQL keeps running in Docker; stop it with `docker compose stop mysql`.
+
+> Docker is not required for solving. If MySQL is unavailable, modeling and analysis still work, while model history falls back to browser storage for the current browser.
 
 > **What you see first**  
-> Built-in example **Portal frame 01** (portal frame + uniform load). Click **Run Analysis** — Results shows displacements, reactions, axial force, shear, and bending moment.
+> The workbench opens with **Portal frame 01**. Click **Run Analysis** to see displacements, reactions, axial force, shear, and bending moment. More ready-to-run examples are available under **Models**.
 
 ---
 
@@ -84,13 +90,13 @@ After analysis, expand Results for structural diagrams and per-element envelopes
 
 | Area | What you get |
 | --- | --- |
-| Visual modeling | SVG canvas; coordinate input; split members at a fraction or distance |
-| Material / section libraries | Dropdown definitions; assign to elements; **More details** map on canvas |
-| Supports & loads | Fixed / pin / roller presets; nodal forces/moments; distributed loads |
-| One-click solve | Linear static: displacements, reactions, `N / V / M` fields |
-| Result checks | Diagrams + tables; residual & stiffness-symmetry validation |
-| Model history | MySQL saved models + recent analyses + example browser |
-| API & scripting | REST + Swagger + importable `frame2d` package |
+| Visual modeling | SVG canvas, coordinate input, snapping, and member splitting by fraction or distance |
+| Reusable properties | Material and section libraries with per-member assignment and a canvas overlay |
+| Supports & loads | Fixed, pinned, roller, and inclined supports; nodal and linearly varying member loads |
+| One-click analysis | Nodal displacements and reactions plus sampled axial, shear, and bending-moment fields |
+| Result verification | Structural diagrams, result tables, equilibrium residuals, and stiffness-symmetry checks |
+| Model management | JSON import/export, built-in examples, browser fallback, and optional MySQL history |
+| API & scripting | REST endpoints, interactive OpenAPI docs, and an importable `frame2d` package |
 
 ---
 
@@ -101,9 +107,25 @@ After analysis, expand Results for structural diagrams and per-element envelopes
 3. **Element** — connect two nodes; optionally insert a node and split  
 4. **Support / Load** — restrain DOFs and apply loading  
 5. **Run Analysis** — inspect displacement, reactions, shear, moment  
-6. **Save / Models** — export JSON or restore from history / examples  
+6. **Save / Models** — export JSON or restore a saved, recent, or example model
 
 New elements start unassigned. Missing material/section blocks Save/Run and jumps you to the right panel.
+
+---
+
+## Analysis scope
+
+The solver uses a two-node, prismatic Euler–Bernoulli frame element with three degrees of freedom per node: global `u`, `v`, and `φ`.
+
+- Linear-elastic, small-displacement static analysis
+- Axial and bending deformation; shear deformation is not included
+- Nodal forces and moments
+- Uniform or linearly varying distributed loads in element-local axes
+- Fixed, pinned, roller, inclined, and non-zero prescribed support conditions
+- Element recovery for displacement, rotation, axial force, shear, and bending moment
+- Global residual and per-element equilibrium validation
+
+This project is intended for learning, prototyping, and independent verification. Validate assumptions and results before using them for engineering decisions.
 
 ---
 
@@ -114,28 +136,31 @@ flowchart LR
     UI["React workbench"]
     API["FastAPI"]
     FEM["frame2d core"]
+    PLOT["Matplotlib diagrams"]
     DB[("MySQL model store")]
 
     UI --> API
     API --> FEM
     FEM --> API
+    API --> PLOT
     API --> UI
     API <--> DB
 ```
+
+The frontend talks only to the HTTP API. The API can also serve a production build from `frontend/dist`; MySQL is used only for saved models and recent-analysis snapshots.
 
 ---
 
 ## Commands
 
-```bash
-docker compose up -d mysql           # start MySQL once
-npm run dev                          # UI + API
-FRAME2D_API_RELOAD=1 npm run dev     # also reload Python
-
-pytest
-npm run typecheck
-npm run build
-```
+| Task | Command |
+| --- | --- |
+| Start the UI and API | `npm run dev` |
+| Start MySQL | `docker compose up -d mysql` |
+| Enable backend hot reload | `FRAME2D_API_RELOAD=1 npm run dev` |
+| Run Python tests | `pytest` |
+| Check frontend types | `npm run typecheck` |
+| Build the frontend | `npm run build` |
 
 | Variable | Default | Purpose |
 | --- | --- | --- |
@@ -144,6 +169,7 @@ npm run build
 | `FRAME2D_FRONTEND_PORT` | `5173` | Frontend port |
 | `FRAME2D_DATABASE_URL` | `mysql://frame2d:frame2d@127.0.0.1:3307/frame2d` | MySQL model store |
 | `FRAME2D_API_RELOAD` | `0` | `1` = backend reload |
+| `FRAME2D_FRONTEND_DIST` | auto-detected | Production frontend directory served by FastAPI |
 
 Separate processes:
 
@@ -151,6 +177,15 @@ Separate processes:
 uvicorn frame2d.api:app --host 0.0.0.0 --port 8000 --reload
 npm --prefix frontend run dev
 ```
+
+For a production-style local run, build the frontend first and start the installed entry point:
+
+```bash
+npm run build
+frame2d-api
+```
+
+Then open http://127.0.0.1:8000.
 
 ---
 
@@ -162,7 +197,8 @@ npm --prefix frontend run dev
 | `POST` | `/api/v1/solve` | Solve (optional V/M plots) |
 | `POST` | `/api/v1/plots/shear-force` | Shear PNG |
 | `POST` | `/api/v1/plots/bending-moment` | Moment PNG |
-| `GET/POST/DELETE` | `/api/v1/models` | Model history |
+| `GET` / `POST` / `DELETE` | `/api/v1/models` | List, save, or clear model history |
+| `DELETE` | `/api/v1/models/{id}` | Delete one history entry |
 
 ```bash
 curl -X POST http://127.0.0.1:8000/api/v1/solve \
@@ -200,20 +236,21 @@ print(result.elements[0].fields.bending_moment)
 | Force / N / V | `N` | Moment / M | `N·m` |
 | Distributed load | `N/m` | | |
 
-Nodal loads: global `+X / +Y`; positive moment counterclockwise. Distributed loads follow element-local axes. Axial force positive in tension.  
-See the [mathematical basis](Math%20Logic/2D_Frame_%E6%9C%89%E9%99%90%E5%85%83%E7%B4%A0%E6%95%B8%E5%AD%B8%E4%BE%9D%E6%93%9A.md).
+Nodal loads act in global `+X / +Y`, and positive moments are counterclockwise. Distributed loads use element-local axes; local `+x` runs from node `i` to node `j`, and local `+y` is 90° counterclockwise from local `+x`. Axial force is positive in tension.
+
+For the full derivation and sign conventions, see the [mathematical basis](Math%20Logic/2D_Frame_%E6%9C%89%E9%99%90%E5%85%83%E7%B4%A0%E6%95%B8%E5%AD%B8%E4%BE%9D%E6%93%9A.md).
 
 ---
 
 ## Layout
 
 ```text
-photo/             UI screenshots for this README
 frontend/          React + TypeScript + Vite
 src/frame2d/       FE core, API, plotting
 tests/             numerical & API tests
 examples/          JSON / Python samples
 Math Logic/        derivations
+photo/             README screenshots
 docker-compose.yml MySQL + API services and persistent database volume
 scripts/dev.mjs    combined dev launcher
 ```
@@ -222,8 +259,10 @@ scripts/dev.mjs    combined dev launcher
 
 ## Contributing
 
-Issues and PRs welcome. Before submitting:
+Issues and pull requests are welcome. Before submitting a change, run:
 
 ```bash
-pytest && npm run typecheck
+pytest
+npm run typecheck
+npm run build
 ```
