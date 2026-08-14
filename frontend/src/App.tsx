@@ -3,14 +3,8 @@ import Box from '@mui/material/Box'
 import Snackbar from '@mui/material/Snackbar'
 import { useCallback, useEffect, useReducer, useRef, useState, type ChangeEvent } from 'react'
 import type { SolveResponse } from './api/contracts'
-import {
-  clearModelHistory,
-  deleteModelHistoryEntry,
-  FrameApiError,
-  listModelHistory,
-  saveModelHistoryEntry,
-  solveFrame,
-} from './api/frameApi'
+import { FrameApiError, solveFrame } from './api/frameApi'
+import { AuthDialog } from './components/AuthDialog'
 import { GuidanceDialog } from './components/GuidanceDialog'
 import { ModelCanvas } from './components/ModelCanvas'
 import { PropertiesPanel } from './components/PropertiesPanel'
@@ -29,7 +23,6 @@ import {
 import {
   findFirstAssignmentIssue,
   parseFrameModel,
-  toSolverPayload,
   type ElementDefaults,
   type FrameModel,
   type ModelHistoryEntry,
@@ -42,70 +35,29 @@ import {
   GUIDANCE_VISIBLE_KEY,
   ONBOARDING_KEY,
 } from './guidance/workflow'
+import { useIdentity } from './hooks/useIdentity'
+import { useModelHistory } from './hooks/useModelHistory'
 import { modelReducer, type ModelAction } from './state/modelReducer'
+import type { MessageSeverity } from './types/ui'
+import { readBrowserStorage, writeBrowserStorage } from './utils/browserStorage'
+import { downloadModelFile } from './utils/modelFile'
 
 type AnalysisState = 'idle' | 'running' | 'success' | 'error'
 
 interface ToastState {
-  severity: 'info' | 'success' | 'error'
+  severity: MessageSeverity
   message: string
 }
 
 const cloneExample = () => structuredClone(exampleModel)
-const HISTORY_KEY = 'frame-studio:model-history:v1'
-const EXAMPLES_KEY = 'frame-studio:example-models:v1'
-
-function loadModelHistory(): ModelHistoryEntry[] {
-  try {
-    const value = JSON.parse(localStorage.getItem(HISTORY_KEY) ?? '[]') as unknown
-    if (!Array.isArray(value)) return []
-    return value.flatMap((item) => {
-      if (!item || typeof item !== 'object') return []
-      const candidate = item as Partial<ModelHistoryEntry>
-      if (
-        typeof candidate.id !== 'string'
-        || typeof candidate.name !== 'string'
-        || typeof candidate.savedAt !== 'string'
-        || (candidate.source !== 'saved' && candidate.source !== 'analyzed')
-      ) return []
-      try {
-        return [{ ...candidate, model: parseFrameModel(candidate.model) } as ModelHistoryEntry]
-      } catch {
-        return []
-      }
-    }).slice(0, 12)
-  } catch {
-    return []
-  }
-}
+const MAX_MODEL_FILE_BYTES = 10 * 1024 * 1024
 
 function loadExampleModels(): ExampleModelDefinition[] {
-  const stored = localStorage.getItem(EXAMPLES_KEY)
-  if (stored === null) return structuredClone(commonExampleModels)
-  try {
-    const value = JSON.parse(stored) as unknown
-    if (!Array.isArray(value)) return structuredClone(commonExampleModels)
-    return value.flatMap((item) => {
-      if (!item || typeof item !== 'object') return []
-      const candidate = item as Partial<ExampleModelDefinition>
-      if (
-        typeof candidate.id !== 'string'
-        || typeof candidate.name !== 'string'
-        || typeof candidate.description !== 'string'
-      ) return []
-      try {
-        return [{ ...candidate, model: parseFrameModel(candidate.model) } as ExampleModelDefinition]
-      } catch {
-        return []
-      }
-    })
-  } catch {
-    return structuredClone(commonExampleModels)
-  }
+  return structuredClone(commonExampleModels)
 }
 
 function loadGuidanceVisible(): boolean {
-  const stored = localStorage.getItem(GUIDANCE_VISIBLE_KEY)
+  const stored = readBrowserStorage(GUIDANCE_VISIBLE_KEY)
   if (stored === null) return true
   return stored !== '0'
 }
@@ -126,51 +78,77 @@ export default function App() {
   const [elementDefaults, setElementDefaults] = useState<ElementDefaults>({ materialId: null, sectionId: null })
   const [supportDefaults, setSupportDefaults] = useState<SupportDefaults>({ u: true, v: true, phi: true, angle: 0 })
   const [nodalLoadDefaults, setNodalLoadDefaults] = useState<NodalLoadDefaults>({ fx: 0, fy: -1000, mz: 0 })
-  const [modelHistory, setModelHistory] = useState<ModelHistoryEntry[]>(loadModelHistory)
-  const [exampleModels, setExampleModels] = useState<ExampleModelDefinition[]>(loadExampleModels)
+  const [exampleModels, setExampleModels] = useState<ExampleModelDefinition[]>(() => loadExampleModels())
   const [isDirty, setIsDirty] = useState(false)
   const [toast, setToast] = useState<ToastState | null>(null)
-  const [guidanceOpen, setGuidanceOpen] = useState(() => localStorage.getItem(ONBOARDING_KEY) !== '1')
+  const [guidanceOpen, setGuidanceOpen] = useState(() => readBrowserStorage(ONBOARDING_KEY) !== '1')
   const [guidanceVisible, setGuidanceVisible] = useState(loadGuidanceVisible)
   const [workflowCollapsed, setWorkflowCollapsed] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const analysisAbortRef = useRef<AbortController | null>(null)
-  const historyAbortRef = useRef<AbortController | null>(null)
-
-  const dispatch = useCallback((action: ModelAction) => {
-    baseDispatch(action)
-    setIsDirty(true)
-    if (action.type !== 'rename') {
-      setResult(null)
-      setAnalysisState('idle')
-      setAnalysisError(null)
-      setResultsExpanded(false)
-      setResultsOpen(false)
-    }
-  }, [])
+  const modelRevisionRef = useRef(0)
+  const fileReadTokenRef = useRef(0)
 
   const showMessage = useCallback((message: string, severity: ToastState['severity'] = 'info') => {
     setToast({ message, severity })
   }, [])
 
-  const rememberModel = useCallback(async (snapshot: FrameModel, source: ModelHistoryEntry['source']) => {
-    const normalizedName = snapshot.name.trim() || 'Untitled frame'
-    const entry: ModelHistoryEntry = {
-      id: `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`,
-      name: normalizedName,
-      savedAt: new Date().toISOString(),
-      source,
-      model: structuredClone(snapshot),
+  const {
+    currentUser,
+    authLoading,
+    authDialogOpen,
+    authDialogMode,
+    openAuthDialog,
+    closeAuthDialog,
+    handleAuthenticated,
+    expireSession,
+    signOut,
+  } = useIdentity(showMessage)
+  const {
+    entries: modelHistory,
+    saveModel,
+    deleteEntry,
+    clearEntries,
+  } = useModelHistory(currentUser, {
+    showMessage,
+    onSessionExpired: expireSession,
+  })
+
+  const resetAnalysis = useCallback(() => {
+    setResult(null)
+    setAnalysisState('idle')
+    setAnalysisError(null)
+    setResultsExpanded(false)
+    setResultsOpen(false)
+  }, [])
+
+  const replaceWorkspaceModel = useCallback((nextModel: FrameModel, nextTool: ToolMode = 'select') => {
+    analysisAbortRef.current?.abort()
+    analysisAbortRef.current = null
+    fileReadTokenRef.current += 1
+    modelRevisionRef.current += 1
+    baseDispatch({ type: 'replace', model: nextModel })
+    setSelection(null)
+    setActiveTool(nextTool)
+    setAssignmentOverlay(null)
+    setElementDefaults({ materialId: null, sectionId: null })
+    resetAnalysis()
+    setActiveResult('displacement')
+    setCanvasRevision((revision) => revision + 1)
+    setIsDirty(false)
+  }, [resetAnalysis])
+
+  const dispatch = useCallback((action: ModelAction) => {
+    modelRevisionRef.current += 1
+    const invalidatesAnalysis = action.type !== 'rename' || analysisAbortRef.current !== null
+    if (invalidatesAnalysis) {
+      analysisAbortRef.current?.abort()
+      analysisAbortRef.current = null
+      resetAnalysis()
     }
-    setModelHistory((current) => {
-      return [entry, ...current.filter((item) => item.id !== entry.id)].slice(0, 12)
-    })
-    try {
-      await saveModelHistoryEntry(entry)
-    } catch {
-      showMessage('Database temporarily unavailable; snapshot saved locally and will sync later.', 'error')
-    }
-  }, [showMessage])
+    baseDispatch(action)
+    setIsDirty(true)
+  }, [resetAnalysis])
 
   const guideToMissingAssignment = useCallback((targetModel: FrameModel) => {
     const issue = findFirstAssignmentIssue(targetModel)
@@ -187,20 +165,9 @@ export default function App() {
 
   const handleNew = useCallback(() => {
     if (isDirty && !window.confirm('The current model has unsaved changes. Create a new model anyway?')) return
-    analysisAbortRef.current?.abort()
-    baseDispatch({ type: 'replace', model: createBlankModel() })
-    setSelection(null)
-    setResult(null)
-    setAnalysisError(null)
-    setAnalysisState('idle')
-    setActiveTool('node')
-    setElementDefaults({ materialId: null, sectionId: null })
-    setResultsExpanded(false)
-    setResultsOpen(false)
-    setCanvasRevision((revision) => revision + 1)
-    setIsDirty(false)
+    replaceWorkspaceModel(createBlankModel(), 'node')
     showMessage('Blank model created')
-  }, [isDirty, showMessage])
+  }, [isDirty, replaceWorkspaceModel, showMessage])
 
   const handleOpen = useCallback(() => fileInputRef.current?.click(), [])
 
@@ -208,39 +175,50 @@ export default function App() {
     const file = event.target.files?.[0]
     event.target.value = ''
     if (!file) return
+    const fileReadToken = fileReadTokenRef.current + 1
+    fileReadTokenRef.current = fileReadToken
     try {
-      const imported = parseFrameModel(JSON.parse(await file.text()) as unknown)
+      if (file.size > MAX_MODEL_FILE_BYTES) {
+        throw new Error('This model file is too large. The maximum size is 10 MB.')
+      }
+      const contents = await file.text()
+      if (fileReadTokenRef.current !== fileReadToken) return
+      const imported = parseFrameModel(JSON.parse(contents) as unknown)
       if (imported.name === 'Imported frame') {
         imported.name = file.name.replace(/\.json$/i, '')
       }
-      baseDispatch({ type: 'replace', model: imported })
-      setSelection(null)
-      setResult(null)
-      setAnalysisError(null)
-      setAnalysisState('idle')
-      setResultsExpanded(false)
-      setResultsOpen(false)
-      setCanvasRevision((revision) => revision + 1)
-      setIsDirty(false)
+      replaceWorkspaceModel(imported)
       showMessage(`Opened ${file.name}`, 'success')
     } catch (error) {
       showMessage(error instanceof Error ? error.message : 'Could not read this model file.', 'error')
     }
-  }, [showMessage])
+  }, [replaceWorkspaceModel, showMessage])
 
   const handleSave = useCallback(() => {
+    if (!currentUser) {
+      openAuthDialog('login')
+      showMessage('Guest mode cannot save models. Sign in or register to continue.', 'info')
+      return
+    }
     if (guideToMissingAssignment(model)) return
-    const contents = JSON.stringify(toSolverPayload(model), null, 2)
-    const url = URL.createObjectURL(new Blob([contents], { type: 'application/json' }))
-    const anchor = document.createElement('a')
-    anchor.href = url
-    anchor.download = `${model.name.trim().replace(/[^\p{L}\p{N}._-]+/gu, '-') || 'frame-model'}.json`
-    anchor.click()
-    URL.revokeObjectURL(url)
-    setIsDirty(false)
-    void rememberModel(model, 'saved')
-    showMessage('Model saved', 'success')
-  }, [guideToMissingAssignment, model, rememberModel, showMessage])
+    const snapshot = structuredClone(model)
+    const saveRevision = modelRevisionRef.current
+    void (async () => {
+      if (!await saveModel(snapshot, 'saved')) return
+      if (modelRevisionRef.current !== saveRevision) {
+        showMessage('Snapshot saved; the canvas changed while saving.', 'info')
+        return
+      }
+      try {
+        downloadModelFile(snapshot)
+      } catch {
+        showMessage('Model saved to your account, but the JSON download failed.', 'error')
+        return
+      }
+      setIsDirty(false)
+      showMessage('Model saved to your account', 'success')
+    })()
+  }, [currentUser, guideToMissingAssignment, model, openAuthDialog, saveModel, showMessage])
 
   const handleRun = useCallback(async () => {
     if (model.nodes.length === 0 || model.elements.length === 0) {
@@ -259,21 +237,24 @@ export default function App() {
     setResultsOpen(true)
     try {
       const response = await solveFrame(model, controller.signal)
-      if (controller.signal.aborted) return
+      if (controller.signal.aborted || analysisAbortRef.current !== controller) return
+      analysisAbortRef.current = null
       setResult(response)
       setAnalysisState('success')
       setActiveResult('displacement')
       setResultsOpen(true)
-      void rememberModel(model, 'analyzed')
+      void saveModel(model, 'analyzed')
       showMessage('Analysis complete — results updated', 'success')
     } catch (error) {
-      if (error instanceof DOMException && error.name === 'AbortError') {
+      if (controller.signal.aborted) {
         if (analysisAbortRef.current === controller) {
+          analysisAbortRef.current = null
           setAnalysisState('idle')
         }
         return
       }
       if (analysisAbortRef.current !== controller) return
+      analysisAbortRef.current = null
       const message = error instanceof FrameApiError || error instanceof Error
         ? error.message
         : 'Analysis failed. Check the model.'
@@ -282,7 +263,7 @@ export default function App() {
       setResultsOpen(true)
       showMessage(message, 'error')
     }
-  }, [guideToMissingAssignment, model, rememberModel, showMessage])
+  }, [guideToMissingAssignment, model, saveModel, showMessage])
 
   const handleToolChange = useCallback((tool: ToolMode) => {
     setActiveTool(tool)
@@ -300,66 +281,30 @@ export default function App() {
 
   const handleRestoreModel = useCallback((entry: ModelHistoryEntry) => {
     try {
-      baseDispatch({ type: 'replace', model: parseFrameModel(structuredClone(entry.model)) })
-      setSelection(null)
-      setResult(null)
-      setAnalysisError(null)
-      setAnalysisState('idle')
-      setActiveTool('select')
-      setElementDefaults({ materialId: null, sectionId: null })
-      setResultsExpanded(false)
-      setResultsOpen(false)
-      setCanvasRevision((revision) => revision + 1)
-      setIsDirty(false)
+      replaceWorkspaceModel(parseFrameModel(structuredClone(entry.model)))
       showMessage(`Restored ${entry.name}`, 'success')
     } catch {
       showMessage('This snapshot is no longer valid and was not restored.', 'error')
     }
-  }, [showMessage])
+  }, [replaceWorkspaceModel, showMessage])
 
   const handleLoadExample = useCallback((example: ExampleModelDefinition) => {
     if (isDirty && !window.confirm('The current model has unsaved changes. Load this example anyway?')) return
-    baseDispatch({ type: 'replace', model: structuredClone(example.model) })
-    setSelection(null)
-    setResult(null)
-    setAnalysisError(null)
-    setAnalysisState('idle')
-    setActiveTool('select')
-    setElementDefaults({ materialId: null, sectionId: null })
-    setResultsExpanded(false)
-    setResultsOpen(false)
-    setCanvasRevision((revision) => revision + 1)
-    setIsDirty(false)
+    replaceWorkspaceModel(structuredClone(example.model))
     showMessage(`Loaded ${example.name}`, 'success')
-  }, [isDirty, showMessage])
+  }, [isDirty, replaceWorkspaceModel, showMessage])
 
   const handleDeleteHistory = useCallback((id: string) => {
-    const deleted = modelHistory.find((entry) => entry.id === id)
-    setModelHistory((current) => current.filter((entry) => entry.id !== id))
-    void deleteModelHistoryEntry(id).catch(() => {
-      if (deleted) {
-        setModelHistory((current) => [deleted, ...current].slice(0, 12))
-      }
-      showMessage('Could not delete this history entry from the database.', 'error')
-    })
-  }, [modelHistory, showMessage])
+    deleteEntry(id)
+  }, [deleteEntry])
 
   const handleDeleteHistoryGroup = useCallback((source: ModelHistoryEntry['source']) => {
     const deleted = modelHistory.filter((entry) => entry.source === source)
     if (deleted.length === 0) return
     const label = source === 'saved' ? 'saved models' : 'recent analyses'
     if (!window.confirm(`Delete all ${deleted.length} ${label}?`)) return
-    setModelHistory((current) => current.filter((entry) => entry.source !== source))
-    void clearModelHistory(source).catch(() => {
-      setModelHistory((current) => {
-        const restoredIds = new Set(deleted.map((entry) => entry.id))
-        return [...deleted, ...current.filter((entry) => !restoredIds.has(entry.id))]
-          .sort((a, b) => b.savedAt.localeCompare(a.savedAt))
-          .slice(0, 12)
-      })
-      showMessage(`Could not clear ${label} from the database.`, 'error')
-    })
-  }, [modelHistory, showMessage])
+    clearEntries(source)
+  }, [clearEntries, modelHistory])
 
   const handleDeleteExample = useCallback((id: string) => {
     setExampleModels((current) => current.filter((example) => example.id !== id))
@@ -382,70 +327,40 @@ export default function App() {
     showMessage(`${entry.name} added to Example models`, 'success')
   }, [showMessage])
 
+  const handleLogout = useCallback(() => {
+    if (isDirty && !window.confirm('Sign out and discard the unsaved changes on this canvas?')) return
+    void (async () => {
+      if (!await signOut()) return
+      setExampleModels(loadExampleModels())
+      replaceWorkspaceModel(cloneExample())
+    })()
+  }, [isDirty, replaceWorkspaceModel, signOut])
+
   const handleCloseGuidance = useCallback((dontShowAgain: boolean) => {
     setGuidanceOpen(false)
     if (dontShowAgain) {
-      localStorage.setItem(ONBOARDING_KEY, '1')
+      writeBrowserStorage(ONBOARDING_KEY, '1')
     }
   }, [])
 
   const handleToggleGuidance = useCallback(() => {
     setGuidanceVisible((current) => {
       const next = !current
-      localStorage.setItem(GUIDANCE_VISIBLE_KEY, next ? '1' : '0')
+      writeBrowserStorage(GUIDANCE_VISIBLE_KEY, next ? '1' : '0')
       return next
     })
   }, [])
 
   const handleDismissGuidance = useCallback(() => {
     setGuidanceVisible(false)
-    localStorage.setItem(GUIDANCE_VISIBLE_KEY, '0')
+    writeBrowserStorage(GUIDANCE_VISIBLE_KEY, '0')
   }, [])
 
   const handleOpenGuidance = useCallback(() => {
     setGuidanceOpen(true)
     setGuidanceVisible(true)
-    localStorage.setItem(GUIDANCE_VISIBLE_KEY, '1')
+    writeBrowserStorage(GUIDANCE_VISIBLE_KEY, '1')
   }, [])
-
-  useEffect(() => {
-    localStorage.setItem(HISTORY_KEY, JSON.stringify(modelHistory))
-  }, [modelHistory])
-
-  useEffect(() => {
-    localStorage.setItem(EXAMPLES_KEY, JSON.stringify(exampleModels))
-  }, [exampleModels])
-
-  useEffect(() => {
-    const controller = new AbortController()
-    historyAbortRef.current = controller
-    const localEntries = loadModelHistory()
-
-    async function synchronizeHistory() {
-      try {
-        if (localEntries.length > 0) {
-          for (const entry of localEntries) {
-            await saveModelHistoryEntry(entry, controller.signal)
-          }
-        }
-        const storedEntries = await listModelHistory(controller.signal)
-        const validEntries = storedEntries.flatMap((entry) => {
-          try {
-            return [{ ...entry, model: parseFrameModel(entry.model) }]
-          } catch {
-            return []
-          }
-        })
-        setModelHistory(validEntries.slice(0, 12))
-      } catch (error) {
-        if (error instanceof DOMException && error.name === 'AbortError') return
-        showMessage('Could not read the model database; showing browser history for now.', 'error')
-      }
-    }
-
-    void synchronizeHistory()
-    return () => controller.abort()
-  }, [showMessage])
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -473,8 +388,16 @@ export default function App() {
 
   useEffect(() => () => {
     analysisAbortRef.current?.abort()
-    historyAbortRef.current?.abort()
   }, [])
+
+  useEffect(() => {
+    if (!isDirty) return
+    const warnBeforeUnload = (event: BeforeUnloadEvent) => {
+      event.preventDefault()
+    }
+    window.addEventListener('beforeunload', warnBeforeUnload)
+    return () => window.removeEventListener('beforeunload', warnBeforeUnload)
+  }, [isDirty])
 
   // Close assignment map when clicking anywhere except the Assignment panel controls.
   useEffect(() => {
@@ -507,6 +430,8 @@ export default function App() {
         isDirty={isDirty}
         analysisState={analysisState}
         guidanceVisible={guidanceVisible}
+        currentUser={currentUser}
+        authLoading={authLoading}
         fileInputRef={fileInputRef}
         onRename={(name) => dispatch({ type: 'rename', name })}
         onNew={handleNew}
@@ -516,6 +441,8 @@ export default function App() {
         onRun={handleRun}
         onOpenGuidance={handleOpenGuidance}
         onToggleGuidance={handleToggleGuidance}
+        onOpenAuth={() => openAuthDialog('login')}
+        onLogout={handleLogout}
       />
 
       <WorkflowProgress
@@ -611,6 +538,7 @@ export default function App() {
             nodalLoadDefaults={nodalLoadDefaults}
             modelHistory={modelHistory}
             exampleModels={exampleModels}
+            isGuest={!currentUser}
             isCollapsed={propertiesCollapsed}
             assignmentOverlay={assignmentOverlay}
             dispatch={dispatch}
@@ -625,6 +553,7 @@ export default function App() {
             onDeleteExample={handleDeleteExample}
             onDeleteAllExamples={handleDeleteAllExamples}
             onCreateExample={handleCreateExample}
+            onSignIn={() => openAuthDialog('login')}
             onSelectionChange={setSelection}
             onToggleAssignmentOverlay={handleToggleAssignmentOverlay}
             onToggleCollapsed={() => setPropertiesCollapsed((collapsed) => !collapsed)}
@@ -683,6 +612,13 @@ export default function App() {
         open={guidanceOpen}
         onClose={handleCloseGuidance}
         onJumpToTool={handleToolChange}
+      />
+
+      <AuthDialog
+        open={authDialogOpen}
+        initialMode={authDialogMode}
+        onClose={closeAuthDialog}
+        onAuthenticated={handleAuthenticated}
       />
     </Box>
   )

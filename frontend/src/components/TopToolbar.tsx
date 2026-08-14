@@ -1,10 +1,12 @@
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome'
+import AccountCircleOutlinedIcon from '@mui/icons-material/AccountCircleOutlined'
 import CloudOffIcon from '@mui/icons-material/CloudOff'
 import FolderOpenIcon from '@mui/icons-material/FolderOpen'
 import HelpOutlineIcon from '@mui/icons-material/HelpOutline'
 import NoteAddIcon from '@mui/icons-material/NoteAdd'
 import PlayArrowIcon from '@mui/icons-material/PlayArrow'
 import SaveIcon from '@mui/icons-material/Save'
+import LogoutIcon from '@mui/icons-material/Logout'
 import AppBar from '@mui/material/AppBar'
 import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
@@ -12,17 +14,23 @@ import Chip from '@mui/material/Chip'
 import CircularProgress from '@mui/material/CircularProgress'
 import IconButton from '@mui/material/IconButton'
 import InputBase from '@mui/material/InputBase'
+import ListItemIcon from '@mui/material/ListItemIcon'
+import Menu from '@mui/material/Menu'
+import MenuItem from '@mui/material/MenuItem'
 import Stack from '@mui/material/Stack'
 import Toolbar from '@mui/material/Toolbar'
 import Tooltip from '@mui/material/Tooltip'
 import Typography from '@mui/material/Typography'
-import type { ChangeEvent, RefObject } from 'react'
+import { useState, type ChangeEvent, type MouseEvent, type RefObject } from 'react'
+import type { AuthUser } from '../api/contracts'
 
 interface TopToolbarProps {
   modelName: string
   isDirty: boolean
   analysisState: 'idle' | 'running' | 'success' | 'error'
   guidanceVisible: boolean
+  currentUser: AuthUser | null
+  authLoading: boolean
   fileInputRef: RefObject<HTMLInputElement | null>
   onRename: (name: string) => void
   onNew: () => void
@@ -32,6 +40,8 @@ interface TopToolbarProps {
   onRun: () => void
   onOpenGuidance: () => void
   onToggleGuidance: () => void
+  onOpenAuth: () => void
+  onLogout: () => void
 }
 
 function BrandMark() {
@@ -70,6 +80,8 @@ export function TopToolbar({
   isDirty,
   analysisState,
   guidanceVisible,
+  currentUser,
+  authLoading,
   fileInputRef,
   onRename,
   onNew,
@@ -79,7 +91,11 @@ export function TopToolbar({
   onRun,
   onOpenGuidance,
   onToggleGuidance,
+  onOpenAuth,
+  onLogout,
 }: TopToolbarProps) {
+  const [accountAnchor, setAccountAnchor] = useState<HTMLElement | null>(null)
+
   return (
     <AppBar position="static" color="default" sx={{ zIndex: (t) => t.zIndex.appBar }}>
       <Toolbar variant="dense" sx={{ minHeight: 64, gap: { xs: 1, sm: 2 }, px: { xs: 1, sm: 2 } }}>
@@ -118,7 +134,7 @@ export function TopToolbar({
             onChange={onFileChange}
             hidden
           />
-          <Tooltip title="Save model (Ctrl/⌘ S)">
+          <Tooltip title={currentUser ? 'Save model (Ctrl/⌘ S)' : 'Sign in to save models'}>
             <Button size="small" startIcon={<SaveIcon />} onClick={onSave} color="inherit">
               Save
             </Button>
@@ -198,6 +214,68 @@ export function TopToolbar({
               Guide
             </Button>
           </Tooltip>
+
+          {authLoading ? (
+            <CircularProgress size={20} color="inherit" aria-label="Checking account" />
+          ) : currentUser ? (
+            <>
+              <Button
+                size="small"
+                color="inherit"
+                startIcon={<AccountCircleOutlinedIcon />}
+                onClick={(event: MouseEvent<HTMLButtonElement>) => setAccountAnchor(event.currentTarget)}
+                aria-haspopup="menu"
+                aria-expanded={Boolean(accountAnchor)}
+                sx={{ maxWidth: 150, display: { xs: 'none', md: 'inline-flex' } }}
+              >
+                <Box component="span" sx={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {currentUser.displayName}
+                </Box>
+              </Button>
+              <IconButton
+                size="small"
+                color="inherit"
+                onClick={(event) => setAccountAnchor(event.currentTarget)}
+                aria-label="Open account menu"
+                sx={{ display: { xs: 'inline-flex', md: 'none' } }}
+              >
+                <AccountCircleOutlinedIcon />
+              </IconButton>
+              <Menu
+                anchorEl={accountAnchor}
+                open={Boolean(accountAnchor)}
+                onClose={() => setAccountAnchor(null)}
+                anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+                transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+              >
+                <Box sx={{ px: 2, py: 1, minWidth: 220 }}>
+                  <Typography variant="subtitle2">{currentUser.displayName}</Typography>
+                  <Typography variant="caption" color="text.secondary">{currentUser.email}</Typography>
+                </Box>
+                <MenuItem onClick={() => { setAccountAnchor(null); onLogout() }}>
+                  <ListItemIcon><LogoutIcon fontSize="small" /></ListItemIcon>
+                  Sign out
+                </MenuItem>
+              </Menu>
+            </>
+          ) : (
+            <Stack direction="row" alignItems="center" spacing={0.75}>
+              <Chip
+                size="small"
+                label="Guest"
+                variant="outlined"
+                sx={{ display: { xs: 'none', lg: 'inline-flex' }, height: 26 }}
+              />
+              <Button
+                size="small"
+                color="inherit"
+                startIcon={<AccountCircleOutlinedIcon />}
+                onClick={onOpenAuth}
+              >
+                Sign in
+              </Button>
+            </Stack>
+          )}
 
           <Button
             variant="contained"

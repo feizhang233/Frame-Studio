@@ -45,7 +45,7 @@ def parse_mysql_database_url(database_url: str) -> dict[str, Any]:
 
 
 class ModelHistoryStore:
-    """Store and retrieve model snapshots from MySQL."""
+    """Store and retrieve user-owned model snapshots from MySQL."""
 
     def __init__(
         self,
@@ -79,7 +79,8 @@ class ModelHistoryStore:
             cursor.execute(
                 """
                 CREATE TABLE IF NOT EXISTS model_history (
-                    id VARCHAR(160) PRIMARY KEY,
+                    user_id CHAR(32) NOT NULL,
+                    id VARCHAR(160) NOT NULL,
                     name VARCHAR(300) NOT NULL,
                     saved_at VARCHAR(80) NOT NULL,
                     source ENUM('saved', 'analyzed') NOT NULL,
@@ -87,11 +88,51 @@ class ModelHistoryStore:
                     updated_at TIMESTAMP(6) NOT NULL
                         DEFAULT CURRENT_TIMESTAMP(6)
                         ON UPDATE CURRENT_TIMESTAMP(6),
+                    PRIMARY KEY (user_id, id),
+                    INDEX idx_model_history_user_saved (user_id, saved_at, updated_at),
                     INDEX idx_model_history_saved_at (saved_at, updated_at),
                     INDEX idx_model_history_source (source)
                 ) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci
                 """
             )
+            # Upgrade databases created before IAM. Legacy rows deliberately remain
+            # inaccessible instead of being exposed to the first registered user.
+            cursor.execute("SHOW COLUMNS FROM model_history LIKE 'user_id'")
+            if cursor.fetchone() is None:
+                cursor.execute(
+                    "ALTER TABLE model_history ADD COLUMN user_id CHAR(32) NULL FIRST"
+                )
+            cursor.execute(
+                "UPDATE model_history SET user_id = 'legacy' WHERE user_id IS NULL"
+            )
+            cursor.execute(
+                "SHOW INDEX FROM model_history WHERE Key_name = 'PRIMARY'"
+            )
+            primary_columns = [
+                row["Column_name"]
+                for row in sorted(cursor.fetchall(), key=lambda row: row["Seq_in_index"])
+            ]
+            if primary_columns != ["user_id", "id"]:
+                cursor.execute(
+                    """
+                    ALTER TABLE model_history
+                        DROP PRIMARY KEY,
+                        MODIFY user_id CHAR(32) NOT NULL,
+                        ADD PRIMARY KEY (user_id, id)
+                    """
+                )
+            cursor.execute(
+                "SHOW INDEX FROM model_history "
+                "WHERE Key_name = 'idx_model_history_user_saved'"
+            )
+            if cursor.fetchone() is None:
+                cursor.execute(
+                    """
+                    ALTER TABLE model_history
+                    ADD INDEX idx_model_history_user_saved
+                        (user_id, saved_at, updated_at)
+                    """
+                )
         connection.commit()
         return connection
 
@@ -103,16 +144,17 @@ class ModelHistoryStore:
         finally:
             connection.close()
 
-    def list(self, limit: int = 12) -> list[dict[str, Any]]:
+    def list(self, user_id: str, limit: int = 12) -> list[dict[str, Any]]:
         with self._connection() as connection, connection.cursor() as cursor:
             cursor.execute(
                 """
                 SELECT id, name, saved_at, source, model_json
                 FROM model_history
+                WHERE user_id = %s
                 ORDER BY saved_at DESC, updated_at DESC
                 LIMIT %s
                 """,
-                (limit,),
+                (user_id, limit),
             )
             rows = cursor.fetchall()
         return [
@@ -130,15 +172,16 @@ class ModelHistoryStore:
             for row in rows
         ]
 
-    def save(self, entry: dict[str, Any]) -> dict[str, Any]:
+    def save(self, user_id: str, entry: dict[str, Any]) -> dict[str, Any]:
         model_json = json.dumps(
             entry["model"], ensure_ascii=False, allow_nan=False, separators=(",", ":")
         )
         with self._connection() as connection, connection.cursor() as cursor:
             cursor.execute(
                 """
-                INSERT INTO model_history (id, name, saved_at, source, model_json)
-                VALUES (%s, %s, %s, %s, %s)
+                INSERT INTO model_history
+                    (user_id, id, name, saved_at, source, model_json)
+                VALUES (%s, %s, %s, %s, %s, %s)
                 ON DUPLICATE KEY UPDATE
                     name = VALUES(name),
                     saved_at = VALUES(saved_at),
@@ -146,6 +189,7 @@ class ModelHistoryStore:
                     model_json = VALUES(model_json)
                 """,
                 (
+                    user_id,
                     entry["id"],
                     entry["name"],
                     entry["savedAt"],
@@ -156,21 +200,26 @@ class ModelHistoryStore:
             connection.commit()
         return entry
 
-    def delete(self, entry_id: str) -> bool:
+    def delete(self, user_id: str, entry_id: str) -> bool:
         with self._connection() as connection, connection.cursor() as cursor:
-            cursor.execute("DELETE FROM model_history WHERE id = %s", (entry_id,))
+            cursor.execute(
+                "DELETE FROM model_history WHERE user_id = %s AND id = %s",
+                (user_id, entry_id),
+            )
             connection.commit()
             return cursor.rowcount > 0
 
-    def clear(self, source: HistorySource | None = None) -> int:
+    def clear(self, user_id: str, source: HistorySource | None = None) -> int:
         """Delete snapshots, optionally restricted to one source."""
         with self._connection() as connection, connection.cursor() as cursor:
             if source is None:
-                cursor.execute("DELETE FROM model_history")
+                cursor.execute(
+                    "DELETE FROM model_history WHERE user_id = %s", (user_id,)
+                )
             else:
                 cursor.execute(
-                    "DELETE FROM model_history WHERE source = %s",
-                    (source,),
+                    "DELETE FROM model_history WHERE user_id = %s AND source = %s",
+                    (user_id, source),
                 )
             connection.commit()
             return cursor.rowcount

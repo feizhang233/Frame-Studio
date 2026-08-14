@@ -10,6 +10,7 @@ import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 import FiberManualRecordIcon from '@mui/icons-material/FiberManualRecord'
 import HistoryIcon from '@mui/icons-material/History'
 import LibraryBooksIcon from '@mui/icons-material/LibraryBooks'
+import LockOutlinedIcon from '@mui/icons-material/LockOutlined'
 import MenuBookIcon from '@mui/icons-material/MenuBook'
 import SaveIcon from '@mui/icons-material/Save'
 import ScheduleIcon from '@mui/icons-material/Schedule'
@@ -362,6 +363,7 @@ export function SectionLibraryPanel({
 export function ModelsPanel({
   history,
   examples,
+  isGuest,
   onRestore,
   onLoadExample,
   onDeleteHistory,
@@ -369,10 +371,12 @@ export function ModelsPanel({
   onDeleteExample,
   onDeleteAllExamples,
   onCreateExample,
+  onSignIn,
   onToggleCollapsed,
 }: {
   history: ModelHistoryEntry[]
   examples: ExampleModelDefinition[]
+  isGuest: boolean
   onRestore: (entry: ModelHistoryEntry) => void
   onLoadExample: (example: ExampleModelDefinition) => void
   onDeleteHistory: (id: string) => void
@@ -380,6 +384,7 @@ export function ModelsPanel({
   onDeleteExample: (id: string) => void
   onDeleteAllExamples: () => void
   onCreateExample: (entry: ModelHistoryEntry) => void
+  onSignIn: () => void
   onToggleCollapsed: () => void
 }) {
   const [examplesCollapsed, setExamplesCollapsed] = useState(true)
@@ -411,8 +416,18 @@ export function ModelsPanel({
 
   return (
     <aside className="properties-panel library-panel">
-      <LibraryHeader icon={<HistoryIcon fontSize="small" />} eyebrow="MODEL BROWSER" title="Models" subtitle={`${savedModels.length} saved`} onToggleCollapsed={onToggleCollapsed} />
+      <LibraryHeader icon={<HistoryIcon fontSize="small" />} eyebrow="MODEL BROWSER" title="Models" subtitle={isGuest ? 'Guest mode' : `${savedModels.length} saved`} onToggleCollapsed={onToggleCollapsed} />
       <div className="properties-scroll history-scroll">
+        {isGuest && (
+          <section className="model-auth-callout">
+            <span><LockOutlinedIcon sx={{ fontSize: 18 }} /></span>
+            <div>
+              <strong>Guest work is not saved</strong>
+              <p>Sign in or register to keep private models and recent analyses.</p>
+              <button type="button" onClick={onSignIn}>Sign in to save</button>
+            </div>
+          </section>
+        )}
         <section className="model-browser-section">
           <div className="model-section-header">
             <button className="model-section-toggle" type="button" onClick={() => setSavedCollapsed((value) => !value)} aria-expanded={!savedCollapsed}>
@@ -425,7 +440,7 @@ export function ModelsPanel({
           </div>
           {!savedCollapsed && (
             <>
-              {savedModels.length === 0 && <div className="library-empty model-list-empty">Use Save to add the current model here.</div>}
+              {savedModels.length === 0 && <div className="library-empty model-list-empty">{isGuest ? 'Saved models are available after sign in.' : 'Use Save to add the current model here.'}</div>}
               <div className="history-list">
                 {savedModels.map((entry) => <article key={entry.id} className={`history-card ${draggedHistoryId === entry.id ? 'is-dragging' : ''}`} draggable onDragStart={(event) => startHistoryDrag(event, entry)} onDragEnd={() => { setDraggedHistoryId(null); setExampleDropActive(false) }}>
                   <div className="history-card-top"><DragIndicatorIcon className="history-drag-handle" sx={{ fontSize: 16 }} /><div><span>SAVED</span><strong>{entry.name}</strong></div><div className="history-card-actions"><button type="button" onClick={() => onCreateExample(entry)} aria-label={`Add ${entry.name} to examples`} title="Add to Example models"><AddIcon sx={{ fontSize: 16 }} /></button><button type="button" onClick={() => onDeleteHistory(entry.id)} aria-label={`Delete ${entry.name}`} title="Delete saved model"><DeleteOutlineIcon sx={{ fontSize: 16 }} /></button></div></div>
@@ -480,14 +495,14 @@ export function ModelsPanel({
             <button className="model-section-toggle" type="button" onClick={() => setHistoryCollapsed((value) => !value)} aria-expanded={!historyCollapsed}>
               {historyCollapsed ? <ChevronRightIcon fontSize="small" /> : <ExpandMoreIcon fontSize="small" />}
               <ScheduleIcon fontSize="small" />
-              <span><strong>Recent analyses</strong><small>Automatic snapshots created after analysis.</small></span>
+              <span><strong>Recent analyses</strong><small>{isGuest ? 'Sign in to keep automatic snapshots.' : 'Automatic snapshots created after analysis.'}</small></span>
               <b>{recentAnalyses.length}</b>
             </button>
             <button className="model-batch-delete" type="button" onClick={() => onDeleteHistoryGroup('analyzed')} disabled={recentAnalyses.length === 0} aria-label="Delete all recent analyses" title="Delete all recent analyses"><DeleteOutlineIcon sx={{ fontSize: 14 }} /><span>Delete all</span></button>
           </div>
           {!historyCollapsed && (
             <>
-              {recentAnalyses.length === 0 && <div className="library-empty model-list-empty">Run an analysis to create the first automatic snapshot.</div>}
+              {recentAnalyses.length === 0 && <div className="library-empty model-list-empty">{isGuest ? 'Guest analyses are not stored.' : 'Run an analysis to create the first automatic snapshot.'}</div>}
               <div className="history-list">
                 {recentAnalyses.map((entry) => <article key={entry.id} className={`history-card ${draggedHistoryId === entry.id ? 'is-dragging' : ''}`} draggable onDragStart={(event) => startHistoryDrag(event, entry)} onDragEnd={() => { setDraggedHistoryId(null); setExampleDropActive(false) }}>
                   <div className="history-card-top"><DragIndicatorIcon className="history-drag-handle" sx={{ fontSize: 16 }} /><div><span>ANALYZED</span><strong>{entry.name}</strong></div><div className="history-card-actions"><button type="button" onClick={() => onCreateExample(entry)} aria-label={`Add ${entry.name} to examples`} title="Add to Example models"><AddIcon sx={{ fontSize: 16 }} /></button><button type="button" onClick={() => onDeleteHistory(entry.id)} aria-label={`Delete ${entry.name}`} title="Delete recent analysis"><DeleteOutlineIcon sx={{ fontSize: 16 }} /></button></div></div>

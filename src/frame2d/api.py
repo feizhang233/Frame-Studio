@@ -3,15 +3,17 @@
 from __future__ import annotations
 
 import os
+import re
 from pathlib import Path
 from typing import Annotated, Any, Literal
 
 import numpy as np
-from fastapi import FastAPI, HTTPException, Query, Request, Response, status
+from fastapi import Depends, FastAPI, HTTPException, Query, Request, Response, status
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
+from .auth_store import AuthStore, DuplicateEmailError, SESSION_TTL_DAYS
 from .models import DistributedLoad, FrameElement, NodalLoad, Node, Support
 from .history_store import ModelHistoryStore
 from .plotting import (
@@ -110,6 +112,40 @@ class ModelHistoryEntry(ApiModel):
     model: dict[str, Any]
 
 
+class RegisterRequest(ApiModel):
+    email: str = Field(min_length=3, max_length=320)
+    displayName: str = Field(min_length=2, max_length=120)
+    password: str = Field(min_length=8, max_length=128)
+
+    @field_validator("email")
+    @classmethod
+    def valid_email(cls, value: str) -> str:
+        normalized = value.strip().casefold()
+        if not re.fullmatch(r"[^@\s]+@[^@\s]+\.[^@\s]+", normalized):
+            raise ValueError("Enter a valid email address")
+        return normalized
+
+    @field_validator("displayName")
+    @classmethod
+    def valid_display_name(cls, value: str) -> str:
+        normalized = value.strip()
+        if len(normalized) < 2:
+            raise ValueError("Display name must contain at least 2 characters")
+        return normalized
+
+
+class LoginRequest(ApiModel):
+    email: str = Field(min_length=3, max_length=320)
+    password: str = Field(min_length=1, max_length=128)
+
+
+class AuthUser(ApiModel):
+    id: str
+    email: str
+    displayName: str
+    createdAt: str
+
+
 class NodalDisplacementOutput(ApiModel):
     node_id: int
     u: float
@@ -194,6 +230,42 @@ app = FastAPI(
         "并可生成 V、M 折线图。"
     ),
 )
+
+SESSION_COOKIE = "frame2d_session"
+
+
+def _cookie_secure(request: Request) -> bool:
+    configured = os.environ.get("FRAME2D_COOKIE_SECURE", "").strip().lower()
+    if configured:
+        return configured in {"1", "true", "yes", "on"}
+    return request.url.scheme == "https"
+
+
+def _set_session_cookie(response: Response, request: Request, token: str) -> None:
+    response.set_cookie(
+        key=SESSION_COOKIE,
+        value=token,
+        max_age=SESSION_TTL_DAYS * 24 * 60 * 60,
+        httponly=True,
+        secure=_cookie_secure(request),
+        samesite="lax",
+        path="/",
+    )
+
+
+def require_user(request: Request) -> dict[str, str]:
+    """Resolve the signed-in user or reject protected model operations."""
+    token = request.cookies.get(SESSION_COOKIE)
+    user = AuthStore().user_for_session(token) if token else None
+    if user is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Sign in to save and access your models",
+        )
+    return user
+
+
+CurrentUser = Annotated[dict[str, str], Depends(require_user)]
 
 
 @app.exception_handler(ValueError)
@@ -338,14 +410,65 @@ def health() -> HealthResponse:
     return HealthResponse(status="ok")
 
 
+@app.post(
+    "/api/v1/auth/register",
+    response_model=AuthUser,
+    status_code=status.HTTP_201_CREATED,
+    tags=["iam"],
+)
+def register(payload: RegisterRequest, request: Request, response: Response) -> dict[str, str]:
+    """Create an account and start an authenticated browser session."""
+    store = AuthStore()
+    try:
+        user = store.register(payload.email, payload.displayName, payload.password)
+    except DuplicateEmailError as exception:
+        raise HTTPException(status_code=409, detail=str(exception)) from exception
+    token = store.create_session(user["id"])
+    _set_session_cookie(response, request, token)
+    return user
+
+
+@app.post("/api/v1/auth/login", response_model=AuthUser, tags=["iam"])
+def login(payload: LoginRequest, request: Request, response: Response) -> dict[str, str]:
+    """Authenticate credentials and start a browser session."""
+    store = AuthStore()
+    user = store.authenticate(payload.email, payload.password)
+    if user is None:
+        raise HTTPException(status_code=401, detail="Invalid email or password")
+    token = store.create_session(user["id"])
+    _set_session_cookie(response, request, token)
+    return user
+
+
+@app.get("/api/v1/auth/me", response_model=AuthUser, tags=["iam"])
+def current_account(user: CurrentUser) -> dict[str, str]:
+    """Return the account attached to the current session."""
+    return user
+
+
+@app.post(
+    "/api/v1/auth/logout",
+    status_code=status.HTTP_204_NO_CONTENT,
+    tags=["iam"],
+)
+def logout(request: Request, response: Response) -> Response:
+    """Revoke the current session and return to guest mode."""
+    token = request.cookies.get(SESSION_COOKIE)
+    if token:
+        AuthStore().delete_session(token)
+    response.delete_cookie(key=SESSION_COOKIE, path="/")
+    response.status_code = status.HTTP_204_NO_CONTENT
+    return response
+
+
 @app.get(
     "/api/v1/models",
     response_model=list[ModelHistoryEntry],
     tags=["models"],
 )
-def list_models() -> list[dict[str, Any]]:
+def list_models(user: CurrentUser) -> list[dict[str, Any]]:
     """Return the latest model snapshots stored in MySQL."""
-    return ModelHistoryStore().list()
+    return ModelHistoryStore().list(user["id"])
 
 
 @app.post(
@@ -354,9 +477,9 @@ def list_models() -> list[dict[str, Any]]:
     status_code=status.HTTP_201_CREATED,
     tags=["models"],
 )
-def save_model(entry: ModelHistoryEntry) -> dict[str, Any]:
+def save_model(entry: ModelHistoryEntry, user: CurrentUser) -> dict[str, Any]:
     """Create or replace a model snapshot in MySQL."""
-    return ModelHistoryStore().save(entry.model_dump())
+    return ModelHistoryStore().save(user["id"], entry.model_dump())
 
 
 @app.delete(
@@ -365,10 +488,11 @@ def save_model(entry: ModelHistoryEntry) -> dict[str, Any]:
     tags=["models"],
 )
 def clear_models(
+    user: CurrentUser,
     source: Annotated[Literal["saved", "analyzed"] | None, Query()] = None,
 ) -> Response:
     """Delete every model snapshot, optionally restricted by source."""
-    ModelHistoryStore().clear(source)
+    ModelHistoryStore().clear(user["id"], source)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
@@ -377,9 +501,9 @@ def clear_models(
     status_code=status.HTTP_204_NO_CONTENT,
     tags=["models"],
 )
-def delete_model(entry_id: str) -> Response:
+def delete_model(entry_id: str, user: CurrentUser) -> Response:
     """Delete a model snapshot from MySQL."""
-    if not ModelHistoryStore().delete(entry_id):
+    if not ModelHistoryStore().delete(user["id"], entry_id):
         raise HTTPException(status_code=404, detail="Model snapshot not found")
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 

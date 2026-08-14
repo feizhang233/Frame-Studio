@@ -40,6 +40,7 @@ interface PropertiesPanelProps {
   nodalLoadDefaults: NodalLoadDefaults
   modelHistory: ModelHistoryEntry[]
   exampleModels: ExampleModelDefinition[]
+  isGuest: boolean
   isCollapsed: boolean
   assignmentOverlay: AssignmentOverlayKind | null
   dispatch: Dispatch<ModelAction>
@@ -53,6 +54,7 @@ interface PropertiesPanelProps {
   onDeleteExample: (id: string) => void
   onDeleteAllExamples: () => void
   onCreateExample: (entry: ModelHistoryEntry) => void
+  onSignIn: () => void
   onLoadExample: (example: ExampleModelDefinition) => void
   onSelectionChange: (selection: Selection) => void
   onToggleAssignmentOverlay: (kind: AssignmentOverlayKind) => void
@@ -271,6 +273,7 @@ export function PropertiesPanel({
   nodalLoadDefaults,
   modelHistory,
   exampleModels,
+  isGuest,
   isCollapsed,
   assignmentOverlay,
   dispatch,
@@ -284,6 +287,7 @@ export function PropertiesPanel({
   onDeleteExample,
   onDeleteAllExamples,
   onCreateExample,
+  onSignIn,
   onLoadExample,
   onSelectionChange,
   onToggleAssignmentOverlay,
@@ -333,7 +337,7 @@ export function PropertiesPanel({
     )
   }
   if (activeTool === 'models') {
-    return <ModelsPanel history={modelHistory} examples={exampleModels} onRestore={onRestoreModel} onLoadExample={onLoadExample} onDeleteHistory={onDeleteHistory} onDeleteHistoryGroup={onDeleteHistoryGroup} onDeleteExample={onDeleteExample} onDeleteAllExamples={onDeleteAllExamples} onCreateExample={onCreateExample} onToggleCollapsed={onToggleCollapsed} />
+    return <ModelsPanel history={modelHistory} examples={exampleModels} isGuest={isGuest} onRestore={onRestoreModel} onLoadExample={onLoadExample} onDeleteHistory={onDeleteHistory} onDeleteHistoryGroup={onDeleteHistoryGroup} onDeleteExample={onDeleteExample} onDeleteAllExamples={onDeleteAllExamples} onCreateExample={onCreateExample} onSignIn={onSignIn} onToggleCollapsed={onToggleCollapsed} />
   }
   if (!selection && activeTool !== 'select') {
     return (

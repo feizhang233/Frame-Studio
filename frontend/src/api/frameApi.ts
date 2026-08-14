@@ -1,86 +1,89 @@
 import type { FrameModel, ModelHistoryEntry } from '../domain/frame'
 import { toSolverPayload } from '../domain/frame'
-import type { SolveResponse } from './contracts'
+import type { AuthUser, SolveResponse } from './contracts'
+import {
+  FrameApiError,
+  requestJson,
+  requestJsonOrNull,
+  requestVoid,
+} from './httpClient'
 
-const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL ?? '').replace(/\/$/, '')
-
-export class FrameApiError extends Error {
-  constructor(
-    message: string,
-    public readonly status?: number,
-  ) {
-    super(message)
-    this.name = 'FrameApiError'
-  }
-}
-
-async function errorMessage(response: Response): Promise<string> {
-  try {
-    const body = (await response.json()) as { detail?: string | Array<{ msg?: string }> }
-    if (typeof body.detail === 'string') return body.detail
-    if (Array.isArray(body.detail)) return body.detail.map((item) => item.msg).filter(Boolean).join('；')
-  } catch {
-    // The server may return an empty or non-JSON error body.
-  }
-  return `分析服務回傳 HTTP ${response.status}`
-}
+export { FrameApiError }
 
 export async function solveFrame(
   model: FrameModel,
   signal?: AbortSignal,
 ): Promise<SolveResponse> {
-  let response: Response
-  try {
-    response = await fetch(`${API_BASE_URL}/api/v1/solve`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(toSolverPayload(model)),
-      signal,
-    })
-  } catch (error) {
-    if (error instanceof DOMException && error.name === 'AbortError') throw error
-    throw new FrameApiError('無法連線分析服務，請在專案根目錄執行 npm run dev。')
-  }
-
-  if (!response.ok) {
-    throw new FrameApiError(await errorMessage(response), response.status)
-  }
-  return response.json() as Promise<SolveResponse>
+  return requestJson<SolveResponse>('/api/v1/solve', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(toSolverPayload(model)),
+    signal,
+  }, 120_000)
 }
 
 export async function listModelHistory(signal?: AbortSignal): Promise<ModelHistoryEntry[]> {
-  const response = await fetch(`${API_BASE_URL}/api/v1/models`, { signal })
-  if (!response.ok) throw new FrameApiError(await errorMessage(response), response.status)
-  return response.json() as Promise<ModelHistoryEntry[]>
+  return requestJson<ModelHistoryEntry[]>('/api/v1/models', { signal })
 }
 
 export async function saveModelHistoryEntry(
   entry: ModelHistoryEntry,
   signal?: AbortSignal,
 ): Promise<ModelHistoryEntry> {
-  const response = await fetch(`${API_BASE_URL}/api/v1/models`, {
+  return requestJson<ModelHistoryEntry>('/api/v1/models', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(entry),
     signal,
   })
-  if (!response.ok) throw new FrameApiError(await errorMessage(response), response.status)
-  return response.json() as Promise<ModelHistoryEntry>
 }
 
 export async function deleteModelHistoryEntry(id: string): Promise<void> {
-  const response = await fetch(`${API_BASE_URL}/api/v1/models/${encodeURIComponent(id)}`, {
-    method: 'DELETE',
-  })
-  if (!response.ok && response.status !== 404) {
-    throw new FrameApiError(await errorMessage(response), response.status)
-  }
+  return requestVoid(
+    `/api/v1/models/${encodeURIComponent(id)}`,
+    { method: 'DELETE' },
+    [404],
+  )
 }
 
 export async function clearModelHistory(source?: ModelHistoryEntry['source']): Promise<void> {
   const query = source ? `?source=${encodeURIComponent(source)}` : ''
-  const response = await fetch(`${API_BASE_URL}/api/v1/models${query}`, { method: 'DELETE' })
-  if (!response.ok) {
-    throw new FrameApiError(await errorMessage(response), response.status)
-  }
+  return requestVoid(`/api/v1/models${query}`, {
+    method: 'DELETE',
+  })
+}
+
+export async function getCurrentUser(signal?: AbortSignal): Promise<AuthUser | null> {
+  return requestJsonOrNull<AuthUser>('/api/v1/auth/me', 401, { signal })
+}
+
+export async function registerAccount(payload: {
+  email: string
+  displayName: string
+  password: string
+}, signal?: AbortSignal): Promise<AuthUser> {
+  return requestJson<AuthUser>('/api/v1/auth/register', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+    signal,
+  })
+}
+
+export async function loginAccount(payload: {
+  email: string
+  password: string
+}, signal?: AbortSignal): Promise<AuthUser> {
+  return requestJson<AuthUser>('/api/v1/auth/login', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+    signal,
+  })
+}
+
+export async function logoutAccount(): Promise<void> {
+  return requestVoid('/api/v1/auth/logout', {
+    method: 'POST',
+  })
 }

@@ -941,6 +941,46 @@ body {
 .section-shape--custom { border-style: dashed; transform: rotate(45deg) scale(0.75); }
 
 .history-scroll { padding: 14px; min-height: 0; overflow: auto; }
+.model-auth-callout {
+  display: flex;
+  gap: 11px;
+  padding: 13px;
+  margin-bottom: 16px;
+  border: 1px solid #c7d3ed;
+  border-radius: 13px;
+  background: linear-gradient(145deg, #f3f6ff, #e8eefc);
+  color: #314a86;
+}
+.model-auth-callout > span {
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  border-radius: 9px;
+  background: #d7e1fa;
+}
+.model-auth-callout > div { min-width: 0; }
+.model-auth-callout strong { display: block; font-size: 12.5px; }
+.model-auth-callout p {
+  margin: 4px 0 10px;
+  color: #627096;
+  font-size: 10.5px;
+  line-height: 1.45;
+}
+.model-auth-callout button {
+  height: 30px;
+  padding: 0 11px;
+  border: 0;
+  border-radius: 8px;
+  background: #405aa6;
+  color: #fff;
+  font: inherit;
+  font-size: 10.5px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.model-auth-callout button:hover { background: #2c3f7a; }
 .model-browser-section + .model-browser-section { margin-top: 16px; }
 .model-browser-section {
   border-radius: 13px;

@@ -151,8 +151,8 @@ export const TOOL_HINTS: Record<ToolMode, ToolHint> = {
     title: 'Models & examples',
     body: 'Restore recent snapshots or load example frames to learn the workflow.',
     tips: [
-      'Saved models and analysis snapshots are synced to the project MySQL database.',
-      'Drag a recent model into Examples to keep it as a teaching template.',
+      'When signed in, private models and analysis snapshots are synced to MySQL.',
+      'Signed-in users can drag a recent model into Examples for the current session.',
     ],
   },
 }

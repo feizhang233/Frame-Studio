@@ -21,7 +21,7 @@ React workbench · FastAPI · Python FE core
 ## Quick start
 
 **Requirements:** Python `3.11+` · Node.js `20.19+` or `22.12+` · npm<br>
-**Optional:** Docker, for persistent model history in MySQL
+**Optional:** Docker, for accounts and private model storage in MySQL
 
 ```bash
 # 1. Clone the repository
@@ -37,7 +37,7 @@ python -m pip install -e ".[test]"
 # 3. Install the frontend
 npm --prefix frontend ci
 
-# 4. Optional: enable persistent model history
+# 4. Optional: enable registration, login, and model saving
 docker compose up -d mysql
 
 # 5. Start the UI and API together
@@ -54,7 +54,7 @@ Open in the browser:
 
 `Ctrl+C` stops both development processes. MySQL keeps running in Docker; stop it with `docker compose stop mysql`.
 
-> Docker is not required for solving. If MySQL is unavailable, modeling and analysis still work, while model history falls back to browser storage for the current browser.
+> Docker is not required for modeling or solving. Without MySQL, the site remains usable in guest mode, but registration, login, and model saving are unavailable. Guest models are never persisted to browser storage.
 
 > **What you see first**  
 > The workbench opens with **Portal frame 01**. Click **Run Analysis** to see displacements, reactions, axial force, shear, and bending moment. More ready-to-run examples are available under **Models**.
@@ -95,7 +95,7 @@ After analysis, expand Results for structural diagrams and per-element envelopes
 | Supports & loads | Fixed, pinned, roller, and inclined supports; nodal and linearly varying member loads |
 | One-click analysis | Nodal displacements and reactions plus sampled axial, shear, and bending-moment fields |
 | Result verification | Structural diagrams, result tables, equilibrium residuals, and stiffness-symmetry checks |
-| Model management | JSON import/export, built-in examples, browser fallback, and optional MySQL history |
+| Identity and models | Registration/login, revocable HttpOnly sessions, per-user MySQL history, and a no-save guest mode |
 | API & scripting | REST endpoints, interactive OpenAPI docs, and an importable `frame2d` package |
 
 ---
@@ -147,7 +147,7 @@ flowchart LR
     API <--> DB
 ```
 
-The frontend talks only to the HTTP API. The API can also serve a production build from `frontend/dist`; MySQL is used only for saved models and recent-analysis snapshots.
+The frontend talks only to the HTTP API. The API can also serve a production build from `frontend/dist`; MySQL stores accounts, login sessions, user-owned models, and recent-analysis snapshots.
 
 ---
 
@@ -168,6 +168,7 @@ The frontend talks only to the HTTP API. The API can also serve a production bui
 | `FRAME2D_API_PORT` | `8000` | API port |
 | `FRAME2D_FRONTEND_PORT` | `5173` | Frontend port |
 | `FRAME2D_DATABASE_URL` | `mysql://frame2d:frame2d@127.0.0.1:3307/frame2d` | MySQL model store |
+| `FRAME2D_COOKIE_SECURE` | auto-detected | Set to `1` behind an HTTPS reverse proxy |
 | `FRAME2D_API_RELOAD` | `0` | `1` = backend reload |
 | `FRAME2D_FRONTEND_DIST` | auto-detected | Production frontend directory served by FastAPI |
 
@@ -198,6 +199,12 @@ Then open http://127.0.0.1:8000.
 | `POST` | `/api/v1/plots/shear-force` | Shear PNG |
 | `POST` | `/api/v1/plots/bending-moment` | Moment PNG |
 | `GET` / `POST` / `DELETE` | `/api/v1/models` | List, save, or clear model history |
+| `POST` | `/api/v1/auth/register` | Create an account and start a session |
+| `POST` | `/api/v1/auth/login` | Sign in |
+| `GET` | `/api/v1/auth/me` | Read the current account |
+| `POST` | `/api/v1/auth/logout` | Revoke the current session |
+
+Model endpoints require a signed-in session. Solve and plot endpoints remain public for guest use.
 | `DELETE` | `/api/v1/models/{id}` | Delete one history entry |
 
 ```bash

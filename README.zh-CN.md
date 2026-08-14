@@ -21,7 +21,7 @@ React 工作台 · FastAPI · Python 有限元核心
 ## 快速开始
 
 **必需环境：** Python `3.11+` · Node.js `20.19+` 或 `22.12+` · npm<br>
-**可选环境：** Docker，用于通过 MySQL 持久保存模型历史
+**可选环境：** Docker，用于通过 MySQL 提供账号与用户私有模型存储
 
 ```bash
 # 1. 克隆并进入项目
@@ -37,7 +37,7 @@ python -m pip install -e ".[test]"
 # 3. 前端依赖
 npm --prefix frontend ci
 
-# 4. 可选：启用持久化模型历史
+# 4. 可选：启用注册、登录和模型保存
 docker compose up -d mysql
 
 # 5. 一条命令同时启动前端 + API
@@ -54,7 +54,7 @@ npm run dev
 
 终端里按 `Ctrl+C` 会同时停掉前后端。MySQL 会继续在 Docker 中运行，可用 `docker compose stop mysql` 停止。
 
-> 求解功能不依赖 Docker。MySQL 不可用时仍可正常建模和分析，模型历史会暂时使用当前浏览器的本地存储。
+> 建模和求解不依赖 Docker。MySQL 不可用时，网站仍可以游客模式正常使用，但注册、登录和模型保存不可用；游客模型不会写入浏览器本地存储。
 
 > **第一次打开会看到什么？**  
 > 内置示例 **Portal frame 01**（门式刚架 + 均布荷载）。点右上角 **Run Analysis**，底部 Results 即可切换位移、反力、轴力、剪力、弯矩。
@@ -95,7 +95,7 @@ npm run dev
 | 支座与荷载 | 固定 / 铰支 / 滚轴预设；节点力矩与分布荷载 |
 | 一键分析 | 线性静力求解：位移、反力、`N / V / M` 场 |
 | 结果检查 | 结构图 + 表格；校验残差与刚度对称性 |
-| 模型历史 | MySQL 已保存模型 + 最近分析 + 示例模型浏览器 |
+| IAM 与模型 | 注册 / 登录、可撤销 HttpOnly 会话、按用户隔离的 MySQL 模型历史、不可保存的游客模式 |
 | 接口与脚本 | REST API、Swagger、可 import 的 `frame2d` 库 |
 
 ---
@@ -149,6 +149,7 @@ npm run build               # 前端生产构建
 | `FRAME2D_API_PORT` | `8000` | API 端口 |
 | `FRAME2D_FRONTEND_PORT` | `5173` | 前端端口 |
 | `FRAME2D_DATABASE_URL` | `mysql://frame2d:frame2d@127.0.0.1:3307/frame2d` | MySQL 模型库 |
+| `FRAME2D_COOKIE_SECURE` | 自动检测 | HTTPS 反向代理后建议设为 `1` |
 | `FRAME2D_API_RELOAD` | `0` | `1` = 后端热重载 |
 
 单独起服务：
@@ -172,6 +173,12 @@ npm --prefix frontend run dev
 | `POST` | `/api/v1/plots/shear-force` | 剪力图 PNG |
 | `POST` | `/api/v1/plots/bending-moment` | 弯矩图 PNG |
 | `GET/POST/DELETE` | `/api/v1/models` | 模型历史 |
+| `POST` | `/api/v1/auth/register` | 注册并创建登录会话 |
+| `POST` | `/api/v1/auth/login` | 登录 |
+| `GET` | `/api/v1/auth/me` | 获取当前用户 |
+| `POST` | `/api/v1/auth/logout` | 退出并撤销会话 |
+
+模型接口必须登录后使用；求解和绘图接口保持公开，游客可直接使用。
 
 示例请求（仓库内置悬臂梁）：
 
