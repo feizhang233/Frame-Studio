@@ -6,13 +6,13 @@
 
 React 工作台 · FastAPI · Python 有限元核心
 
-[English](README.md) · [简体中文](README.zh-CN.md) · [繁體中文](README.zh-TW.md)
+[English](README.md) · [简体中文](README.zh-CN.md)
 
 ### [🚀 在线体验 Frame Studio →](https://frame-studio.feizhang233.com)
 
 <br/>
 
-<img src="photo/workbench-overview.png" alt="Frame Studio 工作台总览" width="920" />
+<img src="docs/images/workbench-overview.png" alt="Frame Studio 工作台总览" width="920" />
 
 <sub>打开即用：画布建模 · 材料 / 截面库 · 结果表与结构图</sub>
 
@@ -71,7 +71,7 @@ npm run dev
 属性面板编辑参数，画布上直接点选、拖动、缩放。
 
 <p align="center">
-  <img src="photo/workbench-overview.png" alt="建模与材料库" width="880" />
+  <img src="docs/images/workbench-overview.png" alt="建模与材料库" width="880" />
 </p>
 
 ### 剪力 / 弯矩结果
@@ -79,11 +79,11 @@ npm run dev
 分析完成后，Results 区可展开结构图，并按单元查看端点值与包络。
 
 <p align="center">
-  <img src="photo/shear-force-results.png" alt="剪力图结果" width="880" />
+  <img src="docs/images/shear-force-results.png" alt="剪力图结果" width="880" />
 </p>
 
 <p align="center">
-  <img src="photo/bending-moment-results.png" alt="弯矩图结果" width="880" />
+  <img src="docs/images/bending-moment-results.png" alt="弯矩图结果" width="880" />
 </p>
 
 ---
@@ -220,22 +220,20 @@ print(result.elements[0].fields.bending_moment)
 | 力 / 轴力 / 剪力 | `N` | 力矩 / 弯矩 | `N·m` |
 | 分布荷载 | `N/m` | | |
 
-节点荷载沿全局 `+X / +Y`，正力矩逆时针；分布荷载沿单元局部轴。轴力以受拉为正。  
-完整推导见 [有限元数学依据](Math%20Logic/2D_Frame_%E6%9C%89%E9%99%90%E5%85%83%E7%B4%A0%E6%95%B8%E5%AD%B8%E4%BE%9D%E6%93%9A.md)。
+节点荷载沿全局 `+X / +Y`，正力矩逆时针；分布荷载沿单元局部轴。轴力以受拉为正。
 
 ---
 
 ## 目录结构
 
 ```text
-photo/             界面截图（README 用）
 frontend/          React + TypeScript + Vite 工作台
-src/frame2d/       有限元核心、API、绘图
+src/frame2d/       有限元核心、HTTP API、绘图
 tests/             数值与 API 测试
 examples/          JSON / Python 示例
-Math Logic/        数学推导与参考
-docker-compose.yml MySQL、API 服务与数据库持久化卷
+docs/images/       README 截图
 scripts/dev.mjs    前后端一键启动
+docker-compose.yml 可选 MySQL，用于账号和模型保存
 ```
 
 ---

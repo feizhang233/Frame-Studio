@@ -6,13 +6,13 @@
 
 React workbench · FastAPI · Python FE core
 
-[English](README.md) · [简体中文](README.zh-CN.md) · [繁體中文](README.zh-TW.md)
+[English](README.md) · [简体中文](README.zh-CN.md)
 
 ### [🚀 Try Frame Studio Online →](https://frame-studio.feizhang233.com)
 
 <br/>
 
-<img src="photo/workbench-overview.png" alt="Frame Studio workbench overview" width="920" />
+<img src="docs/images/workbench-overview.png" alt="Frame Studio workbench overview" width="920" />
 
 <sub>Visual modeling · reusable material and section libraries · diagrams, tables, and validation checks</sub>
 
@@ -71,7 +71,7 @@ Tool rail follows the workflow: nodes → materials → sections → elements �
 Edit properties on the left; pick, drag, and zoom on the canvas.
 
 <p align="center">
-  <img src="photo/workbench-overview.png" alt="Modeling and material library" width="880" />
+  <img src="docs/images/workbench-overview.png" alt="Modeling and material library" width="880" />
 </p>
 
 ### Shear & moment results
@@ -79,11 +79,11 @@ Edit properties on the left; pick, drag, and zoom on the canvas.
 After analysis, expand Results for structural diagrams and per-element envelopes.
 
 <p align="center">
-  <img src="photo/shear-force-results.png" alt="Shear force results" width="880" />
+  <img src="docs/images/shear-force-results.png" alt="Shear force results" width="880" />
 </p>
 
 <p align="center">
-  <img src="photo/bending-moment-results.png" alt="Bending moment results" width="880" />
+  <img src="docs/images/bending-moment-results.png" alt="Bending moment results" width="880" />
 </p>
 
 ---
@@ -247,21 +247,18 @@ print(result.elements[0].fields.bending_moment)
 
 Nodal loads act in global `+X / +Y`, and positive moments are counterclockwise. Distributed loads use element-local axes; local `+x` runs from node `i` to node `j`, and local `+y` is 90° counterclockwise from local `+x`. Axial force is positive in tension.
 
-For the full derivation and sign conventions, see the [mathematical basis](Math%20Logic/2D_Frame_%E6%9C%89%E9%99%90%E5%85%83%E7%B4%A0%E6%95%B8%E5%AD%B8%E4%BE%9D%E6%93%9A.md).
-
 ---
 
 ## Layout
 
 ```text
-frontend/          React + TypeScript + Vite
-src/frame2d/       FE core, API, plotting
-tests/             numerical & API tests
+frontend/          React + TypeScript + Vite workbench
+src/frame2d/       FE core, HTTP API, plotting
+tests/             numerical and API tests
 examples/          JSON / Python samples
-Math Logic/        derivations
-photo/             README screenshots
-docker-compose.yml MySQL + API services and persistent database volume
-scripts/dev.mjs    combined dev launcher
+docs/images/       README screenshots
+scripts/dev.mjs    combined UI + API launcher
+docker-compose.yml optional MySQL for accounts and saved models
 ```
 
 ---

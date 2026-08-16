@@ -17,7 +17,15 @@ frontend/*.tsbuildinfo
 frontend/vite.config.js
 frontend/vite.config.d.ts
 
-# Local application database
-data/*.sqlite3
-data/*.sqlite3-shm
-data/*.sqlite3-wal
+# Local runtime data and caches
+data/
+
+# Generated / scratch artifacts
+tmp/
+output/
+
+# Research notes, textbook PDFs, and derivation figures
+Math Logic/
+
+# Machine-specific process manager config
+ecosystem.config.cjs
