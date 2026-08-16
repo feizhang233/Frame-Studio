@@ -8,6 +8,8 @@ React 工作臺 · FastAPI · Python 有限元素核心
 
 [English](README.md) · [简体中文](README.zh-CN.md) · [繁體中文](README.zh-TW.md)
 
+### [🚀 線上體驗 Frame Studio →](https://frame-studio.feizhang233.com)
+
 <br/>
 
 <img src="photo/workbench-overview.png" alt="Frame Studio 工作臺總覽" width="920" />

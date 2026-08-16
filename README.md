@@ -8,6 +8,8 @@ React workbench · FastAPI · Python FE core
 
 [English](README.md) · [简体中文](README.zh-CN.md) · [繁體中文](README.zh-TW.md)
 
+### [🚀 Try Frame Studio Online →](https://frame-studio.feizhang233.com)
+
 <br/>
 
 <img src="photo/workbench-overview.png" alt="Frame Studio workbench overview" width="920" />
