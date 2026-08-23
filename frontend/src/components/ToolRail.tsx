@@ -33,10 +33,10 @@ interface ToolDefinition {
 const tools: ToolDefinition[] = [
   { id: 'select', label: 'Select', shortcut: 'V', icon: NearMeIcon },
   { id: 'node', label: 'Node', shortcut: 'N', icon: FiberManualRecordIcon },
-  { id: 'material', label: 'Material', shortcut: 'M', icon: LibraryBooksIcon },
-  { id: 'section', label: 'Section', shortcut: 'C', icon: CropSquareIcon },
   { id: 'element', label: 'Element', shortcut: 'E', icon: LinearScaleIcon },
+  { id: 'material', label: 'Material', shortcut: 'M', icon: LibraryBooksIcon },
   { id: 'support', label: 'Support', shortcut: 'S', icon: ChangeHistoryIcon },
+  { id: 'section', label: 'Section', shortcut: 'C', icon: CropSquareIcon },
   { id: 'load', label: 'Load', shortcut: 'L', icon: SouthIcon },
 ]
 

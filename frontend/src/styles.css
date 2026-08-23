@@ -40,7 +40,7 @@ body {
 
 .canvas-stage--node .model-svg { cursor: crosshair; }
 .canvas-stage--insert-node .model-svg { cursor: crosshair; }
-.canvas-stage--element .model-svg,
+.canvas-stage--element .model-svg { cursor: crosshair; }
 .canvas-stage--support .model-svg,
 .canvas-stage--load .model-svg { cursor: cell; }
 
@@ -59,6 +59,14 @@ body {
 .global-axes text { fill: #8794a4; font-size: 11px; font-weight: 720; }
 
 .element-hitarea { stroke: transparent; stroke-width: 22; cursor: pointer; }
+.element-preview {
+  stroke: #405aa6;
+  stroke-width: 3;
+  stroke-dasharray: 8 6;
+  stroke-linecap: round;
+  pointer-events: none;
+  opacity: 0.88;
+}
 .frame-element {
   stroke: #3f4b5b;
   stroke-width: 5;
@@ -193,13 +201,23 @@ body {
   cursor: pointer;
   transition: fill 100ms ease, stroke 100ms ease;
 }
-.frame-node:hover { fill: #dfe6ff; }
+.frame-node:hover,
+.frame-node.is-connect-hover { fill: #dfe6ff; }
 .frame-node.is-selected { fill: #405aa6; stroke: #fff; }
+.node-hitarea {
+  fill: transparent;
+  stroke: none;
+  cursor: pointer;
+}
 .node-halo {
   fill: rgba(64, 90, 166, 0.16);
   stroke: rgba(64, 90, 166, 0.3);
   stroke-width: 1;
   pointer-events: none;
+}
+.node-halo.is-connect-start {
+  fill: rgba(64, 90, 166, 0.28);
+  stroke: rgba(64, 90, 166, 0.55);
 }
 
 .canvas-hint,
@@ -1282,6 +1300,35 @@ body {
   cursor: pointer;
 }
 .place-node-button:hover { background: #354d93; }
+.place-node-button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.tool-connect-error {
+  margin: 8px 0 0;
+  color: #b42318;
+  font-size: 11px;
+  font-weight: 650;
+}
+.element-connect-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 10px;
+  padding: 0;
+  list-style: none;
+  color: #5b6878;
+  font-size: 11px;
+  line-height: 1.45;
+}
+.element-connect-steps li {
+  display: flex;
+  gap: 8px;
+}
+.element-connect-steps b {
+  flex: 0 0 auto;
+  color: #405aa6;
+}
 .tool-default-card > label {
   display: flex;
   flex-direction: column;

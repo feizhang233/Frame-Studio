@@ -29,6 +29,7 @@ services:
     environment:
       MPLBACKEND: Agg
       FRAME2D_DATABASE_URL: mysql://frame2d:${FRAME2D_DB_PASSWORD:-frame2d}@mysql:3306/frame2d
+      FRAME2D_COOKIE_SECURE: "1"
       MPLCONFIGDIR: /tmp/matplotlib
     depends_on:
       mysql:

@@ -127,6 +127,37 @@ export const DEFAULT_ELEMENT_PROPERTIES = {
   section_id: null,
 } as const
 
+export function nextNumericId(items: Array<{ id: number }>): number {
+  return Math.max(0, ...items.map((item) => item.id)) + 1
+}
+
+export function hasElementBetween(elements: FrameElement[], nodeA: Id, nodeB: Id): boolean {
+  return elements.some(
+    (element) =>
+      (element.node_i === nodeA && element.node_j === nodeB) ||
+      (element.node_i === nodeB && element.node_j === nodeA),
+  )
+}
+
+export function buildFrameElement(
+  model: FrameModel,
+  nodeI: Id,
+  nodeJ: Id,
+  defaults: ElementDefaults,
+): FrameElement {
+  return {
+    id: nextNumericId(model.elements),
+    node_i: nodeI,
+    node_j: nodeJ,
+    ...DEFAULT_ELEMENT_PROPERTIES,
+    material_id: defaults.materialId,
+    section_id: defaults.sectionId,
+    E: model.materials.find((item) => item.id === defaults.materialId)?.E ?? null,
+    A: model.sections.find((item) => item.id === defaults.sectionId)?.A ?? null,
+    I: model.sections.find((item) => item.id === defaults.sectionId)?.I ?? null,
+  }
+}
+
 export const createDefaultMaterials = (): MaterialDefinition[] => [
   { id: 'steel-s355', name: 'Structural Steel S355', E: 210e9, poisson: 0.3, density: 7850, color: '#405aa6' },
   { id: 'concrete-c30', name: 'Concrete C30/37', E: 30e9, poisson: 0.2, density: 2400, color: '#8a8178' },

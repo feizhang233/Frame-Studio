@@ -10,6 +10,7 @@ import Paper from '@mui/material/Paper'
 import Stack from '@mui/material/Stack'
 import Typography from '@mui/material/Typography'
 import {
+  useEffect,
   useMemo,
   useRef,
   useState,
@@ -19,9 +20,12 @@ import {
 } from 'react'
 import type { SolveResponse } from '../api/contracts'
 import {
-  DEFAULT_ELEMENT_PROPERTIES,
+  buildFrameElement,
+  hasElementBetween,
+  nextNumericId,
   type ElementDefaults,
   type FrameModel,
+  type FrameNode,
   type NodalLoadDefaults,
   type Selection,
   type SupportDefaults,
@@ -67,7 +71,7 @@ interface ModelCanvasProps {
 }
 
 const snap = (value: number, step = 0.25) => Math.round(value / step) * step
-const nextId = (items: Array<{ id: number }>) => Math.max(0, ...items.map((item) => item.id)) + 1
+const NODE_PICK_RADIUS_PX = 20
 
 function fittedView(model: FrameModel): ViewTransform {
   if (model.nodes.length === 0) return DEFAULT_VIEW
@@ -107,6 +111,7 @@ export function ModelCanvas({
   const [view, setView] = useState<ViewTransform>(() => fittedView(model))
   const [drag, setDrag] = useState<DragState>(null)
   const [elementStart, setElementStart] = useState<number | null>(null)
+  const [hoverNodeId, setHoverNodeId] = useState<number | null>(null)
   const [cursor, setCursor] = useState({ x: 0, y: 0 })
 
   const nodeById = useMemo(
@@ -136,6 +141,72 @@ export function ModelCanvas({
     }
   }
 
+  const pickNodeAtClient = (clientX: number, clientY: number): FrameNode | null => {
+    const point = svgPoint(clientX, clientY)
+    let best: FrameNode | null = null
+    let bestDist = NODE_PICK_RADIUS_PX
+    for (const node of model.nodes) {
+      const screen = screenPoint(node.x, node.y)
+      const distance = Math.hypot(screen.x - point.x, screen.y - point.y)
+      if (distance < bestDist) {
+        best = node
+        bestDist = distance
+      }
+    }
+    return best
+  }
+
+  const pickOrCreateNode = (clientX: number, clientY: number): number => {
+    const nearby = pickNodeAtClient(clientX, clientY)
+    if (nearby) return nearby.id
+    const world = worldPoint(clientX, clientY)
+    const x = snap(world.x)
+    const y = snap(world.y)
+    const coincident = model.nodes.find((node) => node.x === x && node.y === y)
+    if (coincident) return coincident.id
+    const node = { id: nextNumericId(model.nodes), x, y }
+    dispatch({ type: 'addNode', node })
+    return node.id
+  }
+
+  const commitElementNode = (nodeId: number) => {
+    if (elementStart === null) {
+      setElementStart(nodeId)
+      onMessage(`起點 N${nodeId} · 再點擊另一個節點完成線段`)
+      return
+    }
+    if (elementStart === nodeId) {
+      setElementStart(null)
+      onMessage('已取消線段起點')
+      return
+    }
+    if (hasElementBetween(model.elements, elementStart, nodeId)) {
+      onMessage(`N${elementStart} 與 N${nodeId} 之間已有構件`)
+      return
+    }
+    const element = buildFrameElement(model, elementStart, nodeId, elementDefaults)
+    dispatch({ type: 'addElement', element })
+    setElementStart(nodeId)
+    onMessage(`已新增構件 E${element.id}（N${elementStart}–N${nodeId}）· 繼續點擊可連接下一節點`)
+  }
+
+  useEffect(() => {
+    if (tool !== 'element') setElementStart(null)
+  }, [tool])
+
+  useEffect(() => {
+    if (tool !== 'element') return
+    const handleKeyDown = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement | null
+      if (target?.matches('input, textarea, select, [contenteditable="true"]')) return
+      if (event.key !== 'Escape') return
+      setElementStart(null)
+      onMessage('已取消線段繪製')
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [onMessage, tool])
+
   const fitModel = () => {
     setView(fittedView(model))
   }
@@ -164,9 +235,18 @@ export function ModelCanvas({
 
   const onCanvasPointerDown = (event: ReactPointerEvent<SVGSVGElement>) => {
     const point = svgPoint(event.clientX, event.clientY)
+    if (tool === 'element' && event.button === 2) {
+      setElementStart(null)
+      onMessage('已取消線段起點')
+      return
+    }
+    if (tool === 'element' && event.button === 0) {
+      commitElementNode(pickOrCreateNode(event.clientX, event.clientY))
+      return
+    }
     if (tool === 'node' && event.button === 0) {
       const world = worldPoint(event.clientX, event.clientY)
-      const node = { id: nextId(model.nodes), x: snap(world.x), y: snap(world.y) }
+      const node = { id: nextNumericId(model.nodes), x: snap(world.x), y: snap(world.y) }
       dispatch({ type: 'addNode', node })
       onSelectionChange({ type: 'node', id: node.id })
       onMessage(`已新增節點 N${node.id}`)
@@ -188,6 +268,7 @@ export function ModelCanvas({
   const onPointerMove = (event: ReactPointerEvent<SVGSVGElement>) => {
     const world = worldPoint(event.clientX, event.clientY)
     setCursor({ x: world.x, y: world.y })
+    setHoverNodeId(tool === 'element' ? pickNodeAtClient(event.clientX, event.clientY)?.id ?? null : null)
     if (!drag) return
     if (drag.mode === 'pan') {
       const point = svgPoint(event.clientX, event.clientY)
@@ -219,26 +300,7 @@ export function ModelCanvas({
       return
     }
     if (tool === 'element') {
-      if (elementStart === null) {
-        setElementStart(nodeId)
-        onMessage(`選擇構件終點（起點 N${nodeId}）`)
-      } else if (elementStart !== nodeId) {
-        const element = {
-          id: nextId(model.elements),
-          node_i: elementStart,
-          node_j: nodeId,
-          ...DEFAULT_ELEMENT_PROPERTIES,
-          material_id: elementDefaults.materialId,
-          section_id: elementDefaults.sectionId,
-          E: model.materials.find((item) => item.id === elementDefaults.materialId)?.E ?? null,
-          A: model.sections.find((item) => item.id === elementDefaults.sectionId)?.A ?? null,
-          I: model.sections.find((item) => item.id === elementDefaults.sectionId)?.I ?? null,
-        }
-        dispatch({ type: 'addElement', element })
-        onSelectionChange({ type: 'element', id: element.id })
-        setElementStart(null)
-        onMessage(`已新增構件 E${element.id}`)
-      }
+      commitElementNode(nodeId)
       return
     }
     if (tool === 'support') {
@@ -270,6 +332,11 @@ export function ModelCanvas({
     elementId: number,
   ) => {
     event.stopPropagation()
+    if (tool === 'element') {
+      const nearby = pickNodeAtClient(event.clientX, event.clientY)
+      if (nearby) commitElementNode(nearby.id)
+      return
+    }
     if (tool === 'load') {
       dispatch({
         type: 'upsertDistributedLoad',
@@ -315,8 +382,8 @@ export function ModelCanvas({
         ? 'Select an element to insert a node and split it'
       : tool === 'element'
         ? elementStart
-          ? `Select end node · start N${elementStart}`
-          : 'Select two nodes to create an element'
+          ? `Click end node to finish E · start N${elementStart} · Esc cancels`
+          : 'Click two nodes to draw a member · empty clicks place nodes'
         : tool === 'support'
           ? 'Click a node to add a support'
           : tool === 'load'
@@ -535,6 +602,11 @@ export function ModelCanvas({
                   className={`distributed-load ${selected ? 'is-selected' : ''}`}
                   onPointerDown={(event) => {
                     event.stopPropagation()
+                    if (tool === 'element') {
+                      const nearby = pickNodeAtClient(event.clientX, event.clientY)
+                      if (nearby) commitElementNode(nearby.id)
+                      return
+                    }
                     onSelectionChange({ type: 'distributedLoad', id: load.element_id })
                   }}
                 >
@@ -575,6 +647,10 @@ export function ModelCanvas({
                   transform={`translate(${point.x} ${point.y}) rotate(${-support.angle}) translate(0 9)`}
                   onPointerDown={(event) => {
                     event.stopPropagation()
+                    if (tool === 'element') {
+                      commitElementNode(support.node_id)
+                      return
+                    }
                     onSelectionChange({ type: 'support', id: support.node_id })
                   }}
                 >
@@ -600,6 +676,10 @@ export function ModelCanvas({
                   className={`nodal-load ${selected ? 'is-selected' : ''}`}
                   onPointerDown={(event) => {
                     event.stopPropagation()
+                    if (tool === 'element') {
+                      commitElementNode(load.node_id)
+                      return
+                    }
                     onSelectionChange({ type: 'nodalLoad', id: load.node_id })
                   }}
                 >
@@ -616,18 +696,43 @@ export function ModelCanvas({
             })}
           </g>
 
+          {tool === 'element' && elementStart !== null && (() => {
+            const startNode = nodeById.get(elementStart)
+            if (!startNode) return null
+            const start = screenPoint(startNode.x, startNode.y)
+            const hover = hoverNodeId != null && hoverNodeId !== elementStart ? nodeById.get(hoverNodeId) : null
+            const end = hover ? screenPoint(hover.x, hover.y) : screenPoint(cursor.x, cursor.y)
+            return (
+              <line
+                className="element-preview"
+                x1={start.x}
+                y1={start.y}
+                x2={end.x}
+                y2={end.y}
+              />
+            )
+          })()}
+
           <g className="nodes-layer">
             {model.nodes.map((node) => {
               const point = screenPoint(node.x, node.y)
               const selected = selection?.type === 'node' && selection.id === node.id
               const isStart = elementStart === node.id
+              const isHover = tool === 'element' && hoverNodeId === node.id
               return (
                 <g key={node.id}>
-                  {(selected || isStart) && <circle className="node-halo" cx={point.x} cy={point.y} r="15" />}
+                  {(selected || isStart || isHover) && <circle className={`node-halo ${isStart ? 'is-connect-start' : ''}`} cx={point.x} cy={point.y} r="16" />}
+                  <circle
+                    className="node-hitarea"
+                    cx={point.x}
+                    cy={point.y}
+                    r="16"
+                    onPointerDown={(event) => onNodePointerDown(event, node.id)}
+                  />
                   <circle
                     role="button"
                     aria-label={`Node N${node.id}`}
-                    className={`frame-node ${selected || isStart ? 'is-selected' : ''}`}
+                    className={`frame-node ${selected || isStart ? 'is-selected' : ''} ${isHover ? 'is-connect-hover' : ''}`}
                     cx={point.x}
                     cy={point.y}
                     r="6.5"
@@ -643,8 +748,17 @@ export function ModelCanvas({
         {model.nodes.length === 0 && (
           <div className="empty-canvas">
             <div className="empty-canvas-icon"><NearMeIcon fontSize="medium" /></div>
-            <strong>Start with a node</strong>
-            <span>Choose Node, then click anywhere on the grid. Press ? for the guide.</span>
+            {tool === 'element' ? (
+              <>
+                <strong>Draw a member</strong>
+                <span>Click two points on the grid. Each click places a node; the second click creates the element.</span>
+              </>
+            ) : (
+              <>
+                <strong>Start with a node</strong>
+                <span>Choose Node, then click anywhere on the grid. Press ? for the guide.</span>
+              </>
+            )}
           </div>
         )}
 

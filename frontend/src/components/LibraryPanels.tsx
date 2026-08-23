@@ -10,6 +10,7 @@ import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 import FiberManualRecordIcon from '@mui/icons-material/FiberManualRecord'
 import HistoryIcon from '@mui/icons-material/History'
 import LibraryBooksIcon from '@mui/icons-material/LibraryBooks'
+import LinearScaleIcon from '@mui/icons-material/LinearScale'
 import LockOutlinedIcon from '@mui/icons-material/LockOutlined'
 import MenuBookIcon from '@mui/icons-material/MenuBook'
 import SaveIcon from '@mui/icons-material/Save'
@@ -19,17 +20,19 @@ import UndoIcon from '@mui/icons-material/Undo'
 import { useEffect, useState, type Dispatch, type DragEvent, type ReactNode } from 'react'
 import type { ExampleModelDefinition } from '../data/exampleModel'
 import { SUPPORT_PRESETS } from '../data/supportPresets'
-import type {
-  ElementDefaults,
-  FrameModel,
-  MaterialDefinition,
-  ModelHistoryEntry,
-  NodalLoadDefaults,
-  SectionDefinition,
-  SectionShape,
-  Selection,
-  SupportDefaults,
-  ToolMode,
+import {
+  buildFrameElement,
+  hasElementBetween,
+  type ElementDefaults,
+  type FrameModel,
+  type MaterialDefinition,
+  type ModelHistoryEntry,
+  type NodalLoadDefaults,
+  type SectionDefinition,
+  type SectionShape,
+  type Selection,
+  type SupportDefaults,
+  type ToolMode,
 } from '../domain/frame'
 import type { ModelAction } from '../state/modelReducer'
 
@@ -547,11 +550,23 @@ export function ToolSetupPanel({
 }) {
   const [nodeX, setNodeX] = useState('0')
   const [nodeY, setNodeY] = useState('0')
+  const [connectI, setConnectI] = useState<number | ''>('')
+  const [connectJ, setConnectJ] = useState<number | ''>('')
+  const [connectError, setConnectError] = useState('')
+
+  useEffect(() => {
+    const ids = model.nodes.map((node) => node.id)
+    setConnectI((current) => (current !== '' && ids.includes(current) ? current : ids[0] ?? ''))
+    setConnectJ((current) => {
+      if (current !== '' && ids.includes(current)) return current
+      return ids.find((id) => id !== (ids[0] ?? -1)) ?? ''
+    })
+  }, [model.nodes])
 
   const definitions = {
     node: { icon: <FiberManualRecordIcon fontSize="small" />, eyebrow: 'CREATE TOOL', title: 'Node', description: 'Enter coordinates below, or click the grid to place a node. Coordinates snap to 0.25 m.' },
     'insert-node': { icon: <AccountTreeIcon fontSize="small" />, eyebrow: 'NODE TOOL', title: 'Insert node', description: 'Select an existing frame element, then choose the exact split position.' },
-    element: { icon: <AccountTreeIcon fontSize="small" />, eyebrow: 'CREATE TOOL', title: 'Element', description: 'Select an i-node and j-node to create a frame element.' },
+    element: { icon: <LinearScaleIcon fontSize="small" />, eyebrow: 'CREATE TOOL', title: 'Element', description: 'Click two nodes on the canvas to draw a member. Empty clicks place a node and use it as an endpoint. Keep clicking to chain members.' },
     support: { icon: <ChangeHistoryIcon fontSize="small" />, eyebrow: 'CREATE TOOL', title: 'Support', description: 'Choose a support type, then click a node to assign it.' },
     load: { icon: <SouthIcon fontSize="small" />, eyebrow: 'CREATE TOOL', title: 'Load', description: 'Click a node for a nodal load or an element for a distributed load.' },
   } as const
@@ -656,7 +671,111 @@ export function ToolSetupPanel({
             </button>
           </section>
         )}
-        {tool === 'element' && <section className="tool-default-card"><span>NEW ELEMENT ASSIGNMENTS</span><label>Material<select value={elementDefaults.materialId ?? ''} onChange={(event) => onElementDefaultsChange({ ...elementDefaults, materialId: event.target.value || null })}><option value="">Unassigned</option>{model.materials.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label><label>Section<select value={elementDefaults.sectionId ?? ''} onChange={(event) => onElementDefaultsChange({ ...elementDefaults, sectionId: event.target.value || null })}><option value="">Unassigned</option>{model.sections.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label><div className="tool-default-actions"><button type="button" onClick={() => onToolChange('material')}>Open Materials</button><button type="button" onClick={() => onToolChange('section')}>Open Sections</button></div></section>}
+        {tool === 'element' && (
+          <>
+            <section className="tool-default-card">
+              <span>CONNECT NODES</span>
+              <ol className="element-connect-steps">
+                <li><b>1</b><span>Click the start node (or empty grid to place one).</span></li>
+                <li><b>2</b><span>Click the end node. A new member appears between them.</span></li>
+                <li><b>3</b><span>Keep clicking to chain the next member. Esc or right-click cancels.</span></li>
+              </ol>
+              {model.nodes.length < 2 ? (
+                <>
+                  <p>Place at least two nodes first, or click two points on the canvas in this tool.</p>
+                  <button type="button" className="place-node-button" onClick={() => onToolChange('node')}>
+                    <FiberManualRecordIcon sx={{ fontSize: 16 }} /> Place nodes
+                  </button>
+                </>
+              ) : (
+                <>
+                  <label>
+                    Start node
+                    <select
+                      value={connectI}
+                      onChange={(event) => {
+                        setConnectI(Number(event.target.value))
+                        setConnectError('')
+                      }}
+                    >
+                      {model.nodes.map((node) => (
+                        <option key={node.id} value={node.id}>N{node.id}</option>
+                      ))}
+                    </select>
+                  </label>
+                  <label>
+                    End node
+                    <select
+                      value={connectJ}
+                      onChange={(event) => {
+                        setConnectJ(Number(event.target.value))
+                        setConnectError('')
+                      }}
+                    >
+                      {model.nodes.map((node) => (
+                        <option key={node.id} value={node.id}>N{node.id}</option>
+                      ))}
+                    </select>
+                  </label>
+                  {connectError && <p className="tool-connect-error">{connectError}</p>}
+                  <button
+                    className="place-node-button"
+                    type="button"
+                    disabled={connectI === '' || connectJ === '' || connectI === connectJ}
+                    onClick={() => {
+                      if (connectI === '' || connectJ === '' || connectI === connectJ) {
+                        setConnectError('Choose two different nodes.')
+                        return
+                      }
+                      if (hasElementBetween(model.elements, connectI, connectJ)) {
+                        setConnectError(`N${connectI} and N${connectJ} are already connected.`)
+                        return
+                      }
+                      const element = buildFrameElement(model, connectI, connectJ, elementDefaults)
+                      dispatch({ type: 'addElement', element })
+                      onSelectionChange({ type: 'element', id: element.id })
+                      setConnectError('')
+                    }}
+                  >
+                    <AddIcon sx={{ fontSize: 16 }} /> Create element
+                  </button>
+                  <div className="tool-check"><CheckIcon sx={{ fontSize: 16 }} /> Or click two nodes on the canvas</div>
+                </>
+              )}
+            </section>
+            <section className="tool-default-card">
+              <span>NEW ELEMENT ASSIGNMENTS</span>
+              <label>
+                Material
+                <select
+                  value={elementDefaults.materialId ?? ''}
+                  onChange={(event) => onElementDefaultsChange({ ...elementDefaults, materialId: event.target.value || null })}
+                >
+                  <option value="">Unassigned</option>
+                  {model.materials.map((item) => (
+                    <option key={item.id} value={item.id}>{item.name}</option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                Section
+                <select
+                  value={elementDefaults.sectionId ?? ''}
+                  onChange={(event) => onElementDefaultsChange({ ...elementDefaults, sectionId: event.target.value || null })}
+                >
+                  <option value="">Unassigned</option>
+                  {model.sections.map((item) => (
+                    <option key={item.id} value={item.id}>{item.name}</option>
+                  ))}
+                </select>
+              </label>
+              <div className="tool-default-actions">
+                <button type="button" onClick={() => onToolChange('material')}>Open Materials</button>
+                <button type="button" onClick={() => onToolChange('section')}>Open Sections</button>
+              </div>
+            </section>
+          </>
+        )}
         {tool === 'support' && (
           <section className="tool-default-card">
             <span>DEFAULT SUPPORT TYPE</span>

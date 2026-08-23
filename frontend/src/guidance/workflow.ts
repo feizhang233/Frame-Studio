@@ -22,31 +22,22 @@ export const WORKFLOW_STEPS: WorkflowStep[] = [
     shortcut: 'N',
   },
   {
+    id: 'elements',
+    label: 'Connect elements',
+    shortLabel: 'Elements',
+    tool: 'element',
+    description: 'Create frame members by connecting two nodes.',
+    howTo: 'Select Element (E), click a start node, then an end node. Keep clicking to chain members. Esc or right-click cancels.',
+    shortcut: 'E',
+  },
+  {
     id: 'materials',
     label: 'Define materials',
     shortLabel: 'Material',
     tool: 'material',
     description: 'Create material cards with elastic modulus E.',
-    howTo: 'Open Material (M), edit E, then assign to elements when ready.',
+    howTo: 'Open Material (M), edit E, then assign to the members you just drew.',
     shortcut: 'M',
-  },
-  {
-    id: 'sections',
-    label: 'Define sections',
-    shortLabel: 'Section',
-    tool: 'section',
-    description: 'Create section cards with area A and inertia I.',
-    howTo: 'Open Section (C), set A and I (or pick a shape), then assign later.',
-    shortcut: 'C',
-  },
-  {
-    id: 'elements',
-    label: 'Connect elements',
-    shortLabel: 'Elements',
-    tool: 'element',
-    description: 'Create frame members between two nodes.',
-    howTo: 'Select Element (E), click start node, then end node.',
-    shortcut: 'E',
   },
   {
     id: 'supports',
@@ -56,6 +47,15 @@ export const WORKFLOW_STEPS: WorkflowStep[] = [
     description: 'Restrain degrees of freedom at supports.',
     howTo: 'Select Support (S), pick a preset, then click a node.',
     shortcut: 'S',
+  },
+  {
+    id: 'sections',
+    label: 'Define sections',
+    shortLabel: 'Section',
+    tool: 'section',
+    description: 'Create section cards with area A and inertia I.',
+    howTo: 'Open Section (C), set A and I (or pick a shape), then assign to elements.',
+    shortcut: 'C',
   },
   {
     id: 'loads',
@@ -96,7 +96,7 @@ export const TOOL_HINTS: Record<ToolMode, ToolHint> = {
     body: 'Enter X/Y in the Properties panel or click the canvas to create joints. Coordinates snap to 0.25 m.',
     tips: [
       'Use Place by coordinates when you know exact positions.',
-      'Edit X/Y later by selecting a node. At least two nodes are needed before drawing an element.',
+      'Edit X/Y later by selecting a node. Place at least two nodes, then switch to Element to connect them.',
     ],
   },
   'insert-node': {
@@ -125,10 +125,11 @@ export const TOOL_HINTS: Record<ToolMode, ToolHint> = {
   },
   element: {
     title: 'Draw elements',
-    body: 'Click two nodes in order to create a frame member between them.',
+    body: 'Click two points to draw a member. Existing nodes snap automatically; empty clicks place a new node.',
     tips: [
-      'New elements start unassigned—set Material and Section before analysis.',
-      'You can change start/end nodes later in Properties.',
+      'First click sets the start node, second click completes the segment. Continue clicking to chain members.',
+      'Right-click or Esc cancels the current start. Duplicate members between the same nodes are ignored.',
+      'Assign Material and Section afterwards — they are not required to draw the line.',
     ],
   },
   support: {
@@ -181,19 +182,13 @@ function hasCompleteSectionAssignments(model: FrameModel): boolean {
 /** Index of the first incomplete workflow step (0-based). Analyze is always last. */
 export function getActiveWorkflowIndex(model: FrameModel): number {
   if (model.nodes.length === 0) return 0
-  if (!hasCompleteMaterialAssignments(model)) return 1
-  if (!hasCompleteSectionAssignments(model)) return 2
-  if (model.elements.length === 0) return 3
-  if (model.supports.length === 0) return 4
+  if (model.elements.length === 0) return 1
+  if (!hasCompleteMaterialAssignments(model)) return 2
+  if (model.supports.length === 0) return 3
+  if (!hasCompleteSectionAssignments(model)) return 4
   const hasLoads =
     model.nodal_loads.length > 0 || model.distributed_loads.length > 0
   if (!hasLoads) return 5
-  const unassigned = model.elements.some(
-    (el) => el.material_id == null || el.section_id == null
-      || el.E == null || el.A == null || el.I == null,
-  )
-  // Still on analyze if assignments missing or ready to run
-  if (unassigned) return 6
   return 6
 }
 
@@ -202,13 +197,13 @@ export function isWorkflowStepComplete(model: FrameModel, stepIndex: number): bo
     case 0:
       return model.nodes.length > 0
     case 1:
-      return hasCompleteMaterialAssignments(model)
-    case 2:
-      return hasCompleteSectionAssignments(model)
-    case 3:
       return model.elements.length > 0
-    case 4:
+    case 2:
+      return model.elements.length > 0 && hasCompleteMaterialAssignments(model)
+    case 3:
       return model.supports.length > 0
+    case 4:
+      return model.elements.length > 0 && hasCompleteSectionAssignments(model)
     case 5:
       return model.nodal_loads.length > 0 || model.distributed_loads.length > 0
     case 6:
