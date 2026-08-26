@@ -131,6 +131,12 @@ flowchart LR
     API <--> DB
 ```
 
+### 学习入口
+
+如果希望从结构力学而不是代码角度理解本项目，可阅读：
+
+- [2D 刚架数学核心速览（博士面试版）](docs/learning/2D_FRAME_MATH_CORE_INTERVIEW.zh-CN.md) — 用“单元 → 转换 → 组装 → 求解 → 恢复 → 校验”理解完整逻辑。
+
 ---
 
 ## 常用命令
@@ -232,6 +238,7 @@ src/frame2d/       有限元核心、HTTP API、绘图
 tests/             数值与 API 测试
 examples/          JSON / Python 示例
 docs/images/       README 截图
+docs/learning/     数学核心与面试复习笔记
 scripts/dev.mjs    前后端一键启动
 docker-compose.yml 可选 MySQL，用于账号和模型保存
 ```
